@@ -1,11 +1,30 @@
 import { Modes } from '../core/Constants';
 
-const ModesMixin = superclass =>
-  class extends superclass {
+interface ModesMixinConstructor {
+  new (...args: any[]): {
+    mode: string;
+    canvas: any; // Using any for fabric.Canvas to avoid type issues
+  };
+}
+
+interface ModesMixinInterface {
+  setMode(mode: string): void;
+  setModeAsDraw(): void;
+  setModeAsSelect(): void;
+  setModeAsMeasure(): void;
+  setModeAsGrab(): void;
+  isSelectMode(): boolean;
+  isGrabMode(): boolean;
+  isMeasureMode(): boolean;
+  isDrawMode(): boolean;
+}
+
+const ModesMixin = <T extends ModesMixinConstructor>(superclass: T) =>
+  class extends superclass implements ModesMixinInterface {
     /**
      * MODES
      */
-    setMode(mode) {
+    setMode(mode: string): void {
       this.mode = mode;
 
       switch (mode) {
@@ -38,35 +57,35 @@ const ModesMixin = superclass =>
       }
     }
 
-    setModeAsDraw() {
+    setModeAsDraw(): void {
       this.setMode(Modes.DRAW);
     }
 
-    setModeAsSelect() {
+    setModeAsSelect(): void {
       this.setMode(Modes.SELECT);
     }
 
-    setModeAsMeasure() {
+    setModeAsMeasure(): void {
       this.setMode(Modes.MEASURE);
     }
 
-    setModeAsGrab() {
+    setModeAsGrab(): void {
       this.setMode(Modes.GRAB);
     }
 
-    isSelectMode() {
+    isSelectMode(): boolean {
       return this.mode === Modes.SELECT;
     }
 
-    isGrabMode() {
+    isGrabMode(): boolean {
       return this.mode === Modes.GRAB;
     }
 
-    isMeasureMode() {
+    isMeasureMode(): boolean {
       return this.mode === Modes.MEASURE;
     }
 
-    isDrawMode() {
+    isDrawMode(): boolean {
       return this.mode === Modes.DRAW;
     }
   };

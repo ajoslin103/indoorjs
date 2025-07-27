@@ -9,10 +9,18 @@ import { Point } from '../geometry/Point';
 
 // constructor
 class Grid extends Base {
-  constructor(canvas, opts) {
+  [key: string]: any;
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  state: any;
+  axisX: any;
+  axisY: any;
+  center: any;
+
+  constructor(canvas: HTMLCanvasElement, opts?: any) {
     super(opts);
     this.canvas = canvas;
-    this.context = this.canvas.getContext('2d');
+    this.context = this.canvas.getContext('2d')!;
     this.state = {};
     this.setDefaults();
     this.update(opts);

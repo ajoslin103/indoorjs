@@ -2,7 +2,7 @@ import fabric from 'fabric-pure-browser';
 
 import { version } from '../package.json';
 
-console.log('fabricJS ', fabric.version || window.fabric.version);
+console.log('fabricJS ', fabric.version || (window as any).fabric.version);
 console.log('IndoorJS ', version);
 
 export { version };

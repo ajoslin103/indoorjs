@@ -1,13 +1,37 @@
-import { Point } from '../geometry/Point.js';
+import { Point } from '../geometry/Point';
 
 export const Modes = {
   SELECT: 'SELECT',
   GRAB: 'GRAB',
   MEASURE: 'MEASURE',
   DRAW: 'DRAW'
-};
+} as const;
 
-export const MAP = {
+export type Mode = typeof Modes[keyof typeof Modes];
+
+export interface MapConfig {
+  center: Point;
+  zoom: number;
+  minZoom: number;
+  maxZoom: number;
+  gridEnabled: boolean;
+  zoomEnabled: boolean;
+  selectEnabled: boolean;
+  mode: Mode;
+  showGrid: boolean;
+  width?: number;
+  height?: number;
+  autostart?: boolean;
+  floorplan?: any;
+}
+
+export interface MarkerConfig {
+  position: Point;
+  minZoom: number;
+  maxZoom: number;
+}
+
+export const MAP: MapConfig = {
   center: new Point(),
   zoom: 1,
   minZoom: 0,
@@ -19,7 +43,7 @@ export const MAP = {
   showGrid: true
 };
 
-export const MARKER = {
+export const MARKER: MarkerConfig = {
   position: new Point(),
   minZoom: 1,
   maxZoom: 20

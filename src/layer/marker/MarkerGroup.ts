@@ -2,6 +2,7 @@ import { Rect } from '../vector';
 import { Layer } from '../Layer';
 
 export class MarkerGroup extends Layer {
+  [key: string]: any;
   constructor(bounds, options) {
     options = options || {};
     options.bounds = bounds;

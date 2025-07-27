@@ -1,6 +1,7 @@
 import Base from '../core/Base';
 
 export class Layer extends Base {
+  [key: string]: any;
   constructor(options) {
     super(options);
     this.label = this.label !== undefined ? this.label : null;
