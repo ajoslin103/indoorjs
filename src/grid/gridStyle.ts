@@ -37,12 +37,12 @@ const gridStyle = {
   ticks: state => {
     if (!state.lines) return;
     const coord = state.coordinate;
-    const step = scale(scale(state.step * 1.1, coord.steps) * 1.1, coord.steps);
+    const step = scale(scale(state.step * 1.1, [1, 2, 5]) * 1.1, [1, 2, 5]);
     const eps = step / 10;
     const tickWidth = state.axisWidth * 4;
     return state.lines.map(v => {
       if (!isMultiple(v, step, eps)) return null;
-      if (almost(v, 0, eps)) return null;
+      if (almost(v, 0, eps, eps)) return null;
       return tickWidth;
     });
   },
@@ -50,12 +50,11 @@ const gridStyle = {
     if (!state.lines) return;
     const coord = state.coordinate;
 
-    const step = scale(scale(state.step * 1.1, coord.steps) * 1.1, coord.steps);
-    // let precision = clamp(Math.abs(Math.floor(lg(step))), 10, 20);
+    const step = scale(scale(state.step * 1.1, [1, 2, 5]) * 1.1, [1, 2, 5]);
     const eps = step / 100;
     return state.lines.map(v => {
       if (!isMultiple(v, step, eps)) return null;
-      if (almost(v, 0, eps)) return coord.orientation === 'y' ? null : '0';
+      if (almost(v, 0, eps, eps)) return coord.orientation === 'y' ? null : '0';
       v = Number((v / 100).toFixed(2));
       return coord.format(v);
     });

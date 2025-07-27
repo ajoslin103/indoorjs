@@ -1,7 +1,11 @@
+
+
 import { Layer } from '../Layer';
 import { Group } from '../Group';
 import { Point } from '../../geometry/Point';
 import { Connector } from '../Connector';
+
+import * as fabric from 'fabric';
 
 export class Marker extends Layer {
   constructor(position, options) {
@@ -81,7 +85,7 @@ export class Marker extends Layer {
     this.addLinks();
     this.registerListeners();
 
-    process.nextTick(() => {
+    setTimeout(() => {
       this.emit('ready');
     });
   }
@@ -101,8 +105,8 @@ export class Marker extends Layer {
     this.shape.on('mousemove', e => {
       vm.onShapeMouseMove(e);
     });
-    this.shape.on('mouseup', e => {
-      vm.onShapeMouseUp(e);
+    this.shape.on('mouseup', _e => {
+      vm.onShapeMouseUp();
     });
     this.shape.on('mouseover', () => {
       vm.emit('mouseover', vm);
@@ -211,7 +215,8 @@ export class Marker extends Layer {
   addLinks() {
     this.connectors = [];
     this.links.forEach(link => {
-      const connector = new Connector(this, link);
+      const [ start, end ] = link;
+      const connector = new Connector(start, end, {});
       this.connectors.push(connector);
     });
 

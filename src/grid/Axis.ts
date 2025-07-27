@@ -1,5 +1,13 @@
-class Axis {
-  constructor(orientation, options) {
+export class Axis {
+  [key: string]: any;
+  orientation: string;
+  width: number;
+  height: number;
+  zoom: number;
+  offset: number;
+  range: number;
+
+  constructor(orientation?: string, options?: any) {
     Object.assign(this, options);
     this.orientation = orientation || 'x';
   }
@@ -27,11 +35,11 @@ class Axis {
     return (value - this.offset) / this.range;
   }
 
-  setOffset(offset) {
+  setOffset(offset: number): void {
     this.offset = offset;
   }
 
-  update(options) {
+  update(options?: any): void {
     options = options || {};
     Object.assign(this, options);
 

@@ -1,22 +1,33 @@
 import { Point } from '../geometry/Point';
 import { Group } from '../layer/Group';
 import { Layer } from '../layer/Layer';
+import * as fabric from 'fabric';
 
 export class Floor extends Layer {
-  constructor(options) {
+  [key: string]: any;
+  width: number;
+  height: number;
+  position: Point;
+  class: string;
+  url: string;
+  opacity: number;
+  image: any;
+  handler: any;
+
+  constructor(options?: any) {
     super(options);
 
     this.width = this.width || -1;
     this.height = this.height || -1;
 
-    this.position = new Point(this.position);
+    this.position = this.position instanceof Point ? this.position : new Point(this.position);
 
     this.class = 'floorplan';
 
     this.load();
   }
 
-  load() {
+  load(): void {
     const vm = this;
     const index = this.url.lastIndexOf('.');
     const ext = this.url.substr(index + 1, 3);
@@ -52,7 +63,7 @@ export class Floor extends Layer {
     });
   }
 
-  setImage(image) {
+  setImage(image: any): void {
     if (this.shape && this.image) {
       this.shape.remove(this.image);
     }
@@ -75,7 +86,7 @@ export class Floor extends Layer {
     this.drawShape();
   }
 
-  drawShape() {
+  drawShape(): void {
     if (this.shape) {
       this.shape.addWithUpdate(this.image);
       this.emit('load', this);
@@ -96,17 +107,17 @@ export class Floor extends Layer {
     this.emit('load', this);
   }
 
-  setWidth(width) {
+  setWidth(width: number): void {
     this.width = width;
-    this.onResize();
+    this.onResize(width, this.height);
   }
 
-  setHeight(height) {
+  setHeight(height: number): void {
     this.height = height;
-    this.onResize();
+    this.onResize(this.width, height);
   }
 
-  setOpacity(opacity) {
+  setOpacity(opacity: number): void {
     this.opacity = opacity;
     this.image.set('opacity', opacity);
     if (this.image.canvas) {
@@ -114,7 +125,7 @@ export class Floor extends Layer {
     }
   }
 
-  setPosition(position) {
+  setPosition(position: any): void {
     this.position = new Point(position);
     if (!this.shape) return;
     this.shape.set({
@@ -123,12 +134,12 @@ export class Floor extends Layer {
     });
   }
 
-  setUrl(url) {
+  setUrl(url: string): void {
     this.url = url;
     this.load();
   }
 
-  onResize(width, height) {
+  onResize(width?: number, height?: number): void {
     if (width !== undefined) {
       this.width = width;
     }

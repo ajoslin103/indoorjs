@@ -2,6 +2,8 @@ import { Layer } from './Layer';
 import { Group } from './Group';
 import { Point } from '../geometry/Point';
 
+import * as fabric from 'fabric';
+
 class Tooltip extends Layer {
   constructor(position, options) {
     options = options || {};
@@ -37,7 +39,7 @@ class Tooltip extends Layer {
       objects.push(this.textObj);
     }
     this.shape = new Group(objects, this.style);
-    process.nextTick(() => {
+    setTimeout(() => {
       this.emit('ready');
     });
   }
