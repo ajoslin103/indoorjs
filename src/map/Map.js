@@ -320,29 +320,7 @@ export class Map extends mix(Base).with(ModesMixin) {
     this.y = e.y0;
     this.isRight = e.isRight;
     this.update();
-  }
-
-  setView(view) {
-    this.dx = 0;
-    this.dy = 0;
-    this.x = 0;
-    this.y = 0;
-    view.y *= -1;
-
-    const dx = this.center.x - view.x;
-    const dy = -this.center.y + view.y;
-
-    this.center.copy(view);
-
-    this.canvas.relativePan(new Point(dx * this.zoom, dy * this.zoom));
-
-    this.canvas.renderAll();
-
-    this.update();
-
-    process.nextTick(() => {
-      this.update();
-    });
+  }// setView removed (orphaned after non-reactive conversion));
   }
 
   registerListeners() {
@@ -543,27 +521,10 @@ export class Map extends mix(Base).with(ModesMixin) {
     // });
   }
 
-// Unregister listeners method removed (no event tracking)
-
-  getMarkerById(id) {
-    const objects = this.canvas.getObjects();
-    for (let i = 0; i < objects.length; i += 1) {
-      const obj = objects[i];
-      if (obj.class === 'marker' && obj.id === id) {
-        return obj.parent;
-      }
+// Unregister listeners method removed (no event tracking)// getMarkerById removed (orphaned after non-reactive conversion)
     }
     return null;
-  }
-
-  getMarkers() {
-    const list = [];
-    const objects = this.canvas.getObjects();
-    for (let i = 0; i < objects.length; i += 1) {
-      const obj = objects[i];
-      if (obj.class === 'marker') {
-        list.push(obj.parent);
-      }
+  }// getMarkers removed (orphaned after non-reactive conversion)
     }
     return list;
   }
