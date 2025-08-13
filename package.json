@@ -1,0 +1,19 @@
+{
+  "name": "indoorjs-core",
+  "version": "1.0.0",
+  "description": "Barebones non-reactive canvas indoor mapping",
+  "main": "dist/indoor.cjs.js",
+  "module": "dist/indoor.esm.js",
+  "browser": "dist/indoor.umd.js",
+  "peerDependencies": {
+    "fabric-pure-browser": "^3.4.0"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c --watch"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.22.4"
+  }
+}
