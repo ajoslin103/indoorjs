@@ -72,27 +72,22 @@ export class Map extends mix(Base).with(ModesMixin) {
 
     this.setMode(this.mode || Modes.GRAB);
 
-    const vm = this;
-    panzoom(this.container, e => {
-      vm.panzoom(e);
-    });
+    // Panzoom interaction removed per non-reactive conversion
 
-    this.registerListeners();
+    // Event listeners removed per non-reactive conversion
 
     setTimeout(() => {
-      this.emit('ready', this);
+      // Event emission removed per non-reactive conversion
     }, 300);
 
-    this.measurement = new Measurement(this);
+    // Measurement instance removed per non-reactive conversion
   }
 
   addFloorPlan() {
-    if (!this.floorplan) return;
-    const vm = this;
-    this.floorplan.on('load', img => {
-      vm.addLayer(img);
-    });
+  if (this.floorplan) {
+    this.addLayer(this.floorplan);
   }
+}
 
   addLayer(layer) {
     // this.canvas.renderOnAddRemove = false;
@@ -108,10 +103,10 @@ export class Map extends mix(Base).with(ModesMixin) {
       layer.shape.set('scaleX', scale);
       layer.shape.set('scaleY', scale);
       layer.shape.setCoords();
-      this.emit(`${layer.class}scaling`, layer);
+      // Event emission removed per non-reactive conversion
     }
     if (layer.class) {
-      this.emit(`${layer.class}:added`, layer);
+      // Event emission removed per non-reactive conversion
     }
 
     // this.canvas.renderOnAddRemove = true;
@@ -123,7 +118,7 @@ export class Map extends mix(Base).with(ModesMixin) {
   removeLayer(layer) {
     if (!layer || !layer.shape) return;
     if (layer.class) {
-      this.emit(`${layer.class}:removed`, layer);
+      // Event emission removed per non-reactive conversion
     }
     this.canvas.remove(layer.shape);
   }
@@ -243,8 +238,7 @@ export class Map extends mix(Base).with(ModesMixin) {
     const oldWidth = this.canvas.width;
     const oldHeight = this.canvas.height;
 
-    width = width || this.container.clientWidth;
-    height = height || this.container.clientHeight;
+    // Parameters required; automatic resize behavior removed
 
     this.canvas.setWidth(width);
     this.canvas.setHeight(height);
@@ -274,7 +268,7 @@ export class Map extends mix(Base).with(ModesMixin) {
         zoom: this.zoom
       });
     }
-    this.emit('update', this);
+    // Event emission removed per non-reactive conversion
     if (this.grid) {
       this.grid.render();
     }
@@ -283,7 +277,7 @@ export class Map extends mix(Base).with(ModesMixin) {
 
     if (this.isGrabMode() || this.isRight) {
       canvas.relativePan(new Point(this.dx, this.dy));
-      this.emit('panning');
+      // Event emission removed per non-reactive conversion
       this.setCursor('grab');
     } else {
       this.setCursor('pointer');
@@ -304,35 +298,13 @@ export class Map extends mix(Base).with(ModesMixin) {
         object.set('scaleY', 1.0 / this.zoom);
         object.setCoords();
         hasKeepZoom = true;
-        this.emit(`${object.class}scaling`, object);
+        // Event emission removed per non-reactive conversion
       }
     }
     if (hasKeepZoom) canvas.requestRenderAll();
   }
 
-  panzoom(e) {
-    // enable interactions
-    const { width, height } = this.canvas;
-    // shift start
-    const zoom = clamp(-e.dz, -height * 0.75, height * 0.75) / height;
-
-    const prevZoom = 1 / this.zoom;
-    let curZoom = prevZoom * (1 - zoom);
-    curZoom = clamp(curZoom, this.minZoom, this.maxZoom);
-
-    let { x, y } = this.center;
-
-    // pan
-    const oX = 0.5;
-    const oY = 0.5;
-    if (this.isGrabMode() || e.isRight) {
-      x -= prevZoom * e.dx;
-      y += prevZoom * e.dy;
-      this.setCursor('grab');
-    } else {
-      this.setCursor('pointer');
-    }
-
+  // Panzoom method removed (no longer needed without event handling)
     if (this.zoomEnabled) {
       const tx = e.x / width - oX;
       x -= width * (curZoom - prevZoom) * tx;
@@ -390,7 +362,7 @@ export class Map extends mix(Base).with(ModesMixin) {
       for (let i = 0; i < objects.length; i += 1) {
         const object = objects[i];
         object.orgYaw = object.parent.yaw || 0;
-        object.fire('moving', object.parent);
+        // Event firing removed per non-reactive conversion
         vm.emit(`${object.class}:moving`, object.parent);
       }
       vm.update();
@@ -412,9 +384,9 @@ export class Map extends mix(Base).with(ModesMixin) {
           object._set('angle', -group.angle);
           object.parent.yaw = -group.angle + (object.orgYaw || 0);
           // object.orgYaw = object.parent.yaw;
-          object.fire('moving', object.parent);
+          // Event firing removed per non-reactive conversion
           vm.emit(`${object.class}:moving`, object.parent);
-          object.fire('rotating', object.parent);
+          // Event firing removed per non-reactive conversion
           vm.emit(`${object.class}:rotating`, object.parent);
         }
       }
@@ -433,7 +405,7 @@ export class Map extends mix(Base).with(ModesMixin) {
       for (let i = 0; i < objects.length; i += 1) {
         const object = objects[i];
         if (object.class) {
-          object.fire('moving', object.parent);
+          // Event firing removed per non-reactive conversion
           vm.emit(`${object.class}:moving`, object.parent);
         }
       }
@@ -454,7 +426,7 @@ export class Map extends mix(Base).with(ModesMixin) {
       for (let i = 0; i < objects.length; i += 1) {
         const object = objects[i];
         if (object.class) {
-          object.fire('moved', object.parent);
+          // Event firing removed per non-reactive conversion
           vm.emit(`${object.class}:moved`, object.parent);
         }
       }
@@ -473,7 +445,7 @@ export class Map extends mix(Base).with(ModesMixin) {
           if (object.parent) {
             object.parent.inGroup = false;
           }
-          object.fire('moving', object.parent);
+          // Event firing removed per non-reactive conversion
         }
       }
     });
@@ -571,10 +543,7 @@ export class Map extends mix(Base).with(ModesMixin) {
     // });
   }
 
-  unregisterListeners() {
-    this.canvas.off('object:moving');
-    this.canvas.off('object:moved');
-  }
+// Unregister listeners method removed (no event tracking)
 
   getMarkerById(id) {
     const objects = this.canvas.getObjects();
