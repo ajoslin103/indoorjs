@@ -1,15 +1,17 @@
-import panzoom from '../lib/panzoom';
-import { clamp } from '../lib/mumath/index';
+// import panzoom from '../lib/panzoom';
+import { clamp } from '../lib/mumath/index.js';
 
-import Base from '../core/Base';
-import { MAP, Modes } from '../core/Constants';
-import Grid from '../grid/Grid';
-import { Point } from '../geometry/Point';
-import ModesMixin from './ModesMixin';
-import Measurement from '../measurement/Measurement';
-import { mix } from '../lib/mix';
+import Base from '../core/Base.js';
+import { MAP, Modes } from '../core/Constants.js';
+import Grid from '../grid/Grid.js';
+import { Point } from '../geometry/Point.js';
 
-export class Map extends mix(Base).with(ModesMixin) {
+// import ModesMixin from './ModesMixin';
+// import Measurement from '../measurement/Measurement';
+// import { mix } from '../lib/mix';
+
+// export class Map extends mix(Base).with(ModesMixin) {
+export class Map extends Base {
   constructor(container, options) {
     super(options);
 
@@ -70,17 +72,6 @@ export class Map extends mix(Base).with(ModesMixin) {
       this.addGrid();
     }
 
-    this.setMode(this.mode || Modes.GRAB);
-
-    // Panzoom interaction removed per non-reactive conversion
-
-    // Event listeners removed per non-reactive conversion
-
-    setTimeout(() => {
-      // Event emission removed per non-reactive conversion
-    }, 300);
-
-    // Measurement instance removed per non-reactive conversion
   }
 
   addFloorPlan() {
@@ -103,23 +94,15 @@ export class Map extends mix(Base).with(ModesMixin) {
       layer.shape.set('scaleX', scale);
       layer.shape.set('scaleY', scale);
       layer.shape.setCoords();
-      // Event emission removed per non-reactive conversion
     }
-    if (layer.class) {
-      // Event emission removed per non-reactive conversion
-    }
+    if (layer.class) {}
 
-    // this.canvas.renderOnAddRemove = true;
-
-    // this.update();
     this.canvas.requestRenderAll();
   }
 
   removeLayer(layer) {
     if (!layer || !layer.shape) return;
-    if (layer.class) {
-      // Event emission removed per non-reactive conversion
-    }
+    if (layer.class) {}
     this.canvas.remove(layer.shape);
   }
 
@@ -304,25 +287,6 @@ export class Map extends mix(Base).with(ModesMixin) {
     if (hasKeepZoom) canvas.requestRenderAll();
   }
 
-  // Panzoom method removed (no longer needed without event handling)
-    if (this.zoomEnabled) {
-      const tx = e.x / width - oX;
-      x -= width * (curZoom - prevZoom) * tx;
-      const ty = oY - e.y / height;
-      y -= height * (curZoom - prevZoom) * ty;
-    }
-    this.center.setX(x);
-    this.center.setY(y);
-    this.zoom = 1 / curZoom;
-    this.dx = e.dx;
-    this.dy = e.dy;
-    this.x = e.x0;
-    this.y = e.y0;
-    this.isRight = e.isRight;
-    this.update();
-  }// setView removed (orphaned after non-reactive conversion));
-  }
-
   registerListeners() {
     const vm = this;
 
@@ -503,30 +467,6 @@ export class Map extends mix(Base).with(ModesMixin) {
     window.addEventListener('resize', () => {
       vm.onResize();
     });
-
-    // document.addEventListener('keyup', () => {
-    //   if (this.modeToggleByKey && this.isGrabMode()) {
-    //     this.setModeAsSelect();
-    //     this.modeToggleByKey = false;
-    //   }
-    // });
-
-    // document.addEventListener('keydown', event => {
-    //   if (event.ctrlKey || event.metaKey) {
-    //     if (this.isSelectMode()) {
-    //       this.setModeAsGrab();
-    //     }
-    //     this.modeToggleByKey = true;
-    //   }
-    // });
-  }
-
-// Unregister listeners method removed (no event tracking)// getMarkerById removed (orphaned after non-reactive conversion)
-    }
-    return null;
-  }// getMarkers removed (orphaned after non-reactive conversion)
-    }
-    return list;
   }
 }
 
