@@ -1,11 +1,11 @@
-import alpha from '../lib/color-alpha';
-import Base from '../core/Base';
+import alpha from '/src/lib/color-alpha';
+import Base from '/src/core/Base';
 import {
   clamp, almost, len, parseUnit, toPx, isObj
-} from '../lib/mumath/index';
-import gridStyle from './gridStyle';
-import Axis from './Axis';
-import { Point } from '../geometry/Point';
+} from '/src/lib/mumath/index';
+import gridStyle from '/src/grid/gridStyle';
+import Axis from '/src/grid/Axis';
+import { Point } from '/src/geometry/Point';
 
 // constructor
 class Grid extends Base {
