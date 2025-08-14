@@ -6,8 +6,8 @@
  */
 'use strict';
 
-import precision from './precision';
-import almost from './almost';
+import precision from './precision.js';
+import almost from './almost.js';
 
 export default function (v, prec) {
 	if (almost(v, 0)) return '0';

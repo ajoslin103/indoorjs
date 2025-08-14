@@ -41,16 +41,15 @@
         <span id="zoomLevel" style="margin-left: 20px; font-family: monospace;">Zoom: 1.00x</span>
     </div>
     <div id="canvas-container"></div>
-
     <!-- Load Fabric.js v6 (browser UMD) from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
 
     <!-- Load EventEmitter2 from CDN -->
-    
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     
     <!-- Direct module imports -->
     <script type="module">
-      import { Grid } from '../src/grid/Grid.js';
+      import Grid from '../src/grid/Grid.js';
       import { Map } from '../src/map/Map.js';
 
       document.addEventListener('DOMContentLoaded', () => {

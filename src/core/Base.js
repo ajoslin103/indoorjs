@@ -1,4 +1,6 @@
-import EventEmitter2 from 'eventemitter2';
+
+// remove for development...
+// import EventEmitter2 from 'eventemitter2';
 
 class Base extends EventEmitter2 {
   constructor(options) {
