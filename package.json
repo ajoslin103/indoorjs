@@ -2,6 +2,7 @@
   "name": "indoorjs-core",
   "version": "1.0.0",
   "description": "Barebones non-reactive canvas indoor mapping",
+  "type": "module",
   "main": "dist/indoor.cjs.js",
   "module": "dist/indoor.esm.js",
   "browser": "dist/indoor.umd.js",
@@ -10,11 +11,12 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "dev": "serve . -p 9000"
+    "dev": "browser-sync start --server --files 'src/**/*.js,demo/**/*.html' --startPath demo/grid-demo.html"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "browser-sync": "^3.0.4",
     "rollup": "^4.22.4"
   }
 }
