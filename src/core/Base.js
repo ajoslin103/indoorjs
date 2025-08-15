@@ -1,10 +1,6 @@
 
-// remove for development...
-// import EventEmitter2 from 'eventemitter2';
-
-class Base extends EventEmitter2 {
+class Base {
   constructor(options) {
-    super(options);
     this._options = options || {};
     Object.assign(this, options);
   }
