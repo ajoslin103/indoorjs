@@ -18,18 +18,17 @@ graph TD
    const map = new Map(document.getElementById('map-container'), {
      width: 800,
      height: 600,
-     showGrid: true
+     showGrid: true  // Enable grid rendering (calls addGrid() internally)
    });
    ```
 
 2. **Configure State** (directly set parameters)  
    ```js
+   // Set zoom level
    map.setZoom(1.5);                    // Scale factor
-   map.setViewport({                    // Viewport position
-     x: 500, 
-     y: 300,
-     zoom: 1.2
-   });
+   
+   // Set center position (instead of viewport)
+   map.center = { x: 500, y: 300 };      // World coordinates
    ```
 
 3. **Modify Elements** (add content)  
@@ -45,9 +44,11 @@ graph TD
    });
    ```
 
-4. **Draw Grid** (with explicit spacing)  
+4. **Initialize Grid** (if not enabled in constructor)  
    ```js
-   map.drawGrid({ spacing: 50 });  // World-unit spacing
+   // The grid is initialized automatically if showGrid:true in constructor
+   // Otherwise can be added manually:
+   map.addGrid();  // Uses internal default spacing
    ```
 
 5. **Render** (MANDATORY after all changes)  
@@ -78,12 +79,20 @@ graph TD
    });
    ```
 
-3. **Viewport Rules**  
-   - `x/y` = world coordinates (not screen pixels)
+3. **Camera/View Rules**  
+   - `center.x/center.y` = world coordinates (not screen pixels)
    - `zoom` = scale factor (1.0 = 100%):  
      ```js
-     // Correct: 200% zoom at specific position
-     map.setViewport({ x: 100, y: 50, zoom: 2.0 });
+     // Correct: Set position and zoom separately
+     map.center = { x: 100, y: 50 };
+     map.setZoom(2.0);  // 200% zoom
+     map.update();      // Required after any changes
+     ```
+   - `minZoom/maxZoom` = zoom constraints:  
+     ```js
+     // Set zoom constraints
+     map.minZoom = 0.5;  // 50% minimum zoom
+     map.maxZoom = 5.0;  // 500% maximum zoom
      ```
 
 ---
@@ -91,8 +100,8 @@ graph TD
 ### 🚫 **What's Gone (Per Specification)**
 | Former Feature | Replacement | Reason |
 |----------------|-------------|--------|
-| Event-driven zoom | `setViewport()` | Eliminates mouse/panning complexity |
-| Automatic grid | `drawGrid()` | Requires explicit spacing parameter |
+| Event-driven zoom | `setZoom()` and setting `center` property | Eliminates mouse/panning complexity |
+| Automatic grid | `addGrid()` or `showGrid:true` | Grid is now an explicit component |
 | Marker system | **Removed** | No longer relevant to pure rendering |
 | Floorplan events | `addLayer()` | Synchronous layer injection |
 
@@ -106,8 +115,8 @@ const map = new Map(document.querySelector('#map'), {
   height: 768
 });
 
-// 2. Draw grid (50-unit spacing)
-map.drawGrid({ spacing: 50 });
+// 2. Grid is enabled via the constructor with showGrid:true
+// If you want to add it manually: map.addGrid();
 
 // 3. Add building outline
 map.addLayer({
@@ -121,7 +130,8 @@ map.addLayer({
 });
 
 // 4. Position camera
-map.setViewport({ x: 100, y: 75, zoom: 1.0 });
+map.center = { x: 100, y: 75 };
+map.setZoom(1.0);
 
 // 5. Render (MANDATORY)
 map.update();
@@ -131,10 +141,38 @@ map.update();
 
 ### 🧩 **Architectural Constraints**
 - **No DOM event dependencies** – All inputs must come from explicit method calls
+- **Browser compatibility** – Uses browser-compatible APIs (no Node.js specific APIs)
 - **No state mutation tracking** – Developer must know when to render
 - **Strict parameter validation** – Rejection of invalid shapes/missing fields
 
 This implementation aligns with the [non_reactive_specification.md](memory://non_reactive_specification.md) and embodies a **functional-reactive-free rendering primitive**. Every visual change requires deliberate state configuration followed by an `update()` call – no surprises, no hidden behavior.
+
+### 🔧 **TypeScript Support**
+
+The library has been fully migrated to TypeScript, allowing for better type safety and developer experience.
+
+```typescript
+import { Map } from 'indoorjs';
+
+// TypeScript typings available for all components
+const map = new Map(container, {
+  width: 800,
+  height: 600,
+  showGrid: true
+});
+
+// Type-safe property access
+map.center = { x: 100, y: 50 };
+map.setZoom(1.5);
+map.update();
+```
+
+While there are some remaining non-critical TypeScript errors in development mode, the library is fully functional and can be used in TypeScript projects immediately.
+
+**Available TypeScript scripts:**
+- `npm run type-check`: Check TypeScript compilation
+- `npm run build:ts`: Build TypeScript declarations
+- `npm run build`: Standard build process
 
 
 ### 1. Static Analysis of Build Output
