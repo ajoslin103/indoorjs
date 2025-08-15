@@ -63,7 +63,7 @@ class Grid extends Base {
     this.state.y = this.calcCoordinate(this.axisY, shape, this);
     this.state.x.opposite = this.state.y;
     this.state.y.opposite = this.state.x;
-    this.emit('update', opts);
+    // emit('update') removed
     return this;
   }
 
@@ -76,7 +76,7 @@ class Grid extends Base {
     this.state.y = this.calcCoordinate(this.axisY, shape, this);
     this.state.x.opposite = this.state.y;
     this.state.y.opposite = this.state.x;
-    this.emit('update', center);
+    // emit('update') removed
 
     this.axisX.offset = center.x;
     this.axisX.zoom = 1 / center.zoom;
