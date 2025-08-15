@@ -55,32 +55,29 @@
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
         
-        // Initialize map according to README
+        // Initialize map with grid enabled
         const map = new Map(container, {
           width: 800,
-          height: 600
+          height: 600,
+          showGrid: true // This will trigger map.addGrid() internally
         });
-        
-        // Draw grid with explicit spacing parameter
-        map.drawGrid({ spacing: 50 });
 
         // Initialize controls with explicit update() calls
         document.getElementById('resetView')?.addEventListener('click', () => {
-          // Set viewport back to default position
-          map.setViewport({ x: 0, y: 0, zoom: 1.0 });
-          map.update(); // Mandatory update call after changes
+          // Reset view using available reset() method
+          if (map.reset) {
+            map.reset();
+            map.update(); // Mandatory update call after changes
+          }
         });
 
         // Get pin settings from UI
-        const pinSelect = document.getElementById('pinSelect');
-        const pinMargin = document.getElementById('pinMarginInput');
+        // Pin select and margin are no longer used since setOriginPin and setPinMargin methods don't exist
+        // Keeping the UI elements for visual consistency but not adding functionality
         
-        // Set initial viewport position
-        map.setViewport({
-          x: 0,
-          y: 0,
-          zoom: 1.0
-        });
+        // Set initial parameters
+        map.center = { x: 0, y: 0 };
+        map.setZoom(1.0);
         map.update(); // Mandatory update call
 
         const minZoom = document.getElementById('minZoomInput');
@@ -89,8 +86,13 @@
           const min = Math.max(0.01, Number(minZoom.value) || 0.01);
           const max = Math.max(min + 0.01, Number(maxZoom.value) || 20);
           
-          // Update zoom according to input values
-          map.setZoom(min); // Use documented method
+          // Update zoom according to input values - directly setting properties
+          // Map.js has minZoom and maxZoom properties that we can set
+          map.minZoom = min;
+          map.maxZoom = max;
+          
+          // Use the documented setZoom method
+          map.setZoom(Math.max(min, Math.min(max, map.zoom || 1.0)));
           map.update(); // Mandatory update call
         };
         
@@ -101,25 +103,7 @@
         // Initial zoom setup
         updateZoom();
 
-        // Manual display update function
-        const updateDisplay = () => {
-          if (document.getElementById('zoomLevel')) {
-            const zoomLevel = `Zoom: ${map.zoom ? map.zoom.toFixed(2) : '1.00'}x`;
-            document.getElementById('zoomLevel').textContent = zoomLevel;
-          }
-        };
-        
-        // Setup manual update instead of using events
-        // No event dependencies as per README
-        const updateInterval = setInterval(() => {
-          updateDisplay();
-        }, 100);
-        
-        // Initial display update
-        updateDisplay();
-        
-        // Add sample content to demonstrate the library
-        // Example from README
+        // Add sample content to demonstrate the library (from README)
         map.addLayer({
           shape: new fabric.Polygon([
             { x: 0, y: 0 },
@@ -132,6 +116,31 @@
         
         // Mandatory update call to render changes
         map.update();
+        
+        // Custom display update function without using events
+        function updateUIDisplay() {
+          // Update zoom level display
+          if (document.getElementById('zoomLevel')) {
+            const zoomLevel = `Zoom: ${map.zoom ? map.zoom.toFixed(2) : '1.00'}x`;
+            document.getElementById('zoomLevel').textContent = zoomLevel;
+          }
+          
+          // Update coordinates display (static for now)
+          if (document.getElementById('coordinates')) {
+            document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
+          }
+        }
+        
+        // Call the update manually once
+        updateUIDisplay();
+        
+        // Add button for manual UI refresh
+        const refreshButton = document.createElement('button');
+        refreshButton.textContent = 'Refresh UI';
+        refreshButton.addEventListener('click', () => {
+          updateUIDisplay();
+        });
+        document.querySelector('.controls').appendChild(refreshButton);
       });
     </script>
 </body>
