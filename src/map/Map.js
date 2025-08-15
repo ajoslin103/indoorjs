@@ -137,9 +137,10 @@ export class Map extends Base {
     this.x = width / 2.0;
     this.y = height / 2.0;
     this.update();
-    process.nextTick(() => {
+    // Use setTimeout for browser compatibility
+    setTimeout(() => {
       this.update();
-    });
+    }, 0);
   }
 
   getBounds() {
@@ -190,9 +191,10 @@ export class Map extends Base {
     });
 
     this.update();
-    process.nextTick(() => {
+    // Use setTimeout for browser compatibility
+    setTimeout(() => {
       this.update();
-    });
+    }, 0);
   }
 
   setCursor(cursor) {
@@ -212,9 +214,10 @@ export class Map extends Base {
     this.x = width / 2.0;
     this.y = height / 2.0;
     this.update();
-    process.nextTick(() => {
+    // Use setTimeout for browser compatibility
+    setTimeout(() => {
       this.update();
-    });
+    }, 0);
   }
 
   onResize(width, height) {
@@ -258,7 +261,7 @@ export class Map extends Base {
 
     canvas.zoomToPoint(new Point(this.x, this.y), this.zoom);
 
-    if (this.isGrabMode() || this.isRight) {
+    if (this.isGrabMode === true || this.isRight) {
       canvas.relativePan(new Point(this.dx, this.dy));
       // Event emission removed per non-reactive conversion
       this.setCursor('grab');
