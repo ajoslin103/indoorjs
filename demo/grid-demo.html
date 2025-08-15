@@ -61,6 +61,44 @@
           height: 600,
           showGrid: true // This will trigger map.addGrid() internally
         });
+        
+        // Add wheel event support for zooming
+        container.addEventListener('wheel', (e) => {
+          // Prevent default scrolling behavior
+          e.preventDefault();
+          
+          // Get mouse position relative to container
+          const rect = container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          
+          // Calculate zoom change based on wheel delta
+          // Use percentage-based zoom (5% per wheel tick)
+          const zoomFactor = 1.05;
+          const direction = e.deltaY < 0 ? 1 : -1;
+          const newZoom = direction > 0 
+            ? map.zoom * zoomFactor 
+            : map.zoom / zoomFactor;
+            
+          // Ensure zoom stays within bounds
+          const constrainedZoom = Math.max(
+            map.minZoom, 
+            Math.min(map.maxZoom, newZoom)
+          );
+          
+          // Set point to zoom at (mouse position)
+          map.x = mouseX;
+          map.y = mouseY;
+          
+          // Set new zoom level
+          map.zoom = constrainedZoom;
+          
+          // Update the map with new zoom level
+          map.update();
+          
+          // Update UI display
+          updateUIDisplay();
+        }, { passive: false });
 
         // Initialize controls with explicit update() calls
         document.getElementById('resetView')?.addEventListener('click', () => {
@@ -127,6 +165,7 @@
           
           // Update coordinates display (static for now)
           if (document.getElementById('coordinates')) {
+            // We could update this with dynamic coordinates if needed
             document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
           }
         }
@@ -141,6 +180,13 @@
           updateUIDisplay();
         });
         document.querySelector('.controls').appendChild(refreshButton);
+        
+        // Add info about wheel zoom
+        const zoomInfoSpan = document.createElement('span');
+        zoomInfoSpan.textContent = ' Use mouse wheel to zoom in/out';
+        zoomInfoSpan.style.marginLeft = '10px';
+        zoomInfoSpan.style.fontStyle = 'italic';
+        document.querySelector('.controls').appendChild(zoomInfoSpan);
       });
     </script>
 </body>
