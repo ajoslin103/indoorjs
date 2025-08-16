@@ -77,35 +77,42 @@ export class Map extends Base {
   }
 
   addFloorPlan() {
-  if (this.floorplan) {
-    this.addLayer(this.floorplan);
+    if (this.floorplan) {
+      // If floorplan is already a fabric object, add it directly
+      if (this.floorplan.type && this.floorplan instanceof fabric.Object) {
+        this.addObject(this.floorplan);
+      } 
+      // If it was previously using the layer format, extract the shape
+      else if (this.floorplan.shape) {
+        this.addObject(this.floorplan.shape);
+      }
+    }
   }
-}
 
-  addLayer(layer) {
+  addObject(object) {
     // this.canvas.renderOnAddRemove = false;
-    if (!layer.shape) {
-      console.error('shape is undefined');
+    if (!object) {
+      console.error('object is undefined');
       return;
     }
-    this.canvas.add(layer.shape);
+    this.canvas.add(object);
     this.canvas._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
 
-    if (layer.shape.keepOnZoom) {
+    if (object.keepOnZoom) {
       const scale = 1.0 / this.zoom;
-      layer.shape.set('scaleX', scale);
-      layer.shape.set('scaleY', scale);
-      layer.shape.setCoords();
+      object.set('scaleX', scale);
+      object.set('scaleY', scale);
+      object.setCoords();
     }
-    if (layer.class) {}
 
     this.canvas.requestRenderAll();
+    return object;
   }
 
-  removeLayer(layer) {
-    if (!layer || !layer.shape) return;
-    if (layer.class) {}
-    this.canvas.remove(layer.shape);
+  removeObject(object) {
+    if (!object) return;
+    this.canvas.remove(object);
+    return object;
   }
 
   addGrid() {
@@ -116,10 +123,13 @@ export class Map extends Base {
   }
 
   moveTo(obj, index) {
+    if (!obj) return;
+    
     if (index !== undefined) {
       obj.zIndex = index;
     }
-    this.canvas.moveTo(obj.shape, obj.zIndex);
+    
+    this.canvas.moveTo(obj, obj.zIndex);
   }
 
   cloneCanvas(canvas) {
