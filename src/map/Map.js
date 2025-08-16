@@ -98,13 +98,6 @@ export class Map extends Base {
     this.canvas.add(object);
     this.canvas._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
 
-    if (object.keepOnZoom) {
-      const scale = 1.0 / this.zoom;
-      object.set('scaleX', scale);
-      object.set('scaleY', scale);
-      object.setCoords();
-    }
-
     this.canvas.requestRenderAll();
     return object;
   }
@@ -286,20 +279,6 @@ export class Map extends Base {
       return;
     }
     this.lastUpdatedTime = now;
-
-    const objects = canvas.getObjects();
-    let hasKeepZoom = false;
-    for (let i = 0; i < objects.length; i += 1) {
-      const object = objects[i];
-      if (object.keepOnZoom) {
-        object.set('scaleX', 1.0 / this.zoom);
-        object.set('scaleY', 1.0 / this.zoom);
-        object.setCoords();
-        hasKeepZoom = true;
-        // Event emission removed per non-reactive conversion
-      }
-    }
-    if (hasKeepZoom) canvas.requestRenderAll();
   }
 
   // registerListeners() method removed - all event handling code removed
