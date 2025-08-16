@@ -141,16 +141,23 @@
         // Initial zoom setup
         updateZoom();
 
-        // Add sample content to demonstrate the library (from README)
-        map.addLayer({
-          shape: new fabric.Polygon([
-            { x: 0, y: 0 },
-            { x: 200, y: 0 },
-            { x: 200, y: 150 },
-            { x: 0, y: 150 }
-          ]),
-          class: 'building'
+        // Add sample content to demonstrate the library using direct object API
+        const polygon = new fabric.Polygon([
+          { x: 0, y: 0 },
+          { x: 200, y: 0 },
+          { x: 200, y: 150 },
+          { x: 0, y: 150 }
+        ], {
+          fill: '#f8f8f8',
+          stroke: '#999',
+          strokeWidth: 1
         });
+        
+        // Add custom property for identifying object type if needed
+        polygon.objectType = 'building';
+        
+        // Add the object directly to the map
+        map.addObject(polygon);
         
         // Mandatory update call to render changes
         map.update();
