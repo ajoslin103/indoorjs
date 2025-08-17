@@ -7,7 +7,7 @@
   "module": "dist/indoor.esm.js",
   "browser": "dist/indoor.umd.js",
   "peerDependencies": {
-    "fabric-pure-browser": "^3.4.0"
+    "fabric": "^6.0.0"
   },
   "scripts": {
     "build": "rollup -c",
