@@ -103,7 +103,7 @@ graph TD
 | Event-driven zoom | `setZoom()` and setting `center` property | Eliminates mouse/panning complexity |
 | Automatic grid | `addGrid()` or `showGrid:true` | Grid is now an explicit component |
 | Marker system | **Removed** | No longer relevant to pure rendering |
-| Floorplan events | `addLayer()` | Synchronous layer injection |
+| Floorplan system | **Removed** | Simplified object model without special cases |
 
 ---
 
