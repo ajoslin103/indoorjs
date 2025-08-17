@@ -34,22 +34,17 @@ export class Map extends Base {
     canvas.width = this.width || this.container.clientWidth;
     canvas.height = this.height || this.container.clientHeight;
 
-    this.canvas = new fabric.Canvas(canvas, {
+    // create the fabric Canvas
+    this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
       renderOnAddRemove: true
     });
-    this.context = this.canvas.getContext('2d');
+    this.context = this.fabric.getContext('2d');
 
-    // Removed event listener
-    if (this.autostart) {
-      // Auto-clear if needed (previously was in render event handler)
-      this.clear();
-    }
+    this.originX = -this.fabric.width / 2;
+    this.originY = -this.fabric.height / 2;
 
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
-
-    this.canvas.absolutePan({
+    this.fabric.absolutePan({
       x: this.originX,
       y: this.originY
     });
@@ -77,23 +72,28 @@ export class Map extends Base {
       console.error('object is undefined');
       return;
     }
-    this.canvas.add(object);
-    this.canvas._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
+    this.fabric.add(object);
+    this.fabric._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
 
-    this.canvas.requestRenderAll();
+    this.fabric.requestRenderAll();
     return object;
   }
 
   removeObject(object) {
     if (!object) return;
-    this.canvas.remove(object);
+    this.fabric.remove(object);
     return object;
   }
 
   addGrid() {
-    this.gridCanvas = this.cloneCanvas();
-    this.gridCanvas.setAttribute('id', 'indoors-grid-canvas');
-    this.grid = new Grid(this.gridCanvas, this);
+    // Create grid using the fabric canvas context
+    this.grid = new Grid(this.context, this);
+    
+    // Set grid dimensions to match fabric canvas
+    this.grid.width = this.fabric.width;
+    this.grid.height = this.fabric.height;
+    
+    // Draw the grid
     this.grid.draw();
   }
 
@@ -104,11 +104,11 @@ export class Map extends Base {
       obj.zIndex = index;
     }
     
-    this.canvas.moveTo(obj, obj.zIndex);
+    this.fabric.moveTo(obj, obj.zIndex);
   }
 
   cloneCanvas(canvas) {
-    canvas = canvas || this.canvas;
+    canvas = canvas || this.fabric;
     const clone = document.createElement('canvas');
     clone.width = canvas.width;
     clone.height = canvas.height;
@@ -117,7 +117,7 @@ export class Map extends Base {
   }
 
   setZoom(zoom) {
-    const { width, height } = this.canvas;
+    const { width, height } = this.fabric;
     this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
     this.dx = 0;
     this.dy = 0;
@@ -136,7 +136,7 @@ export class Map extends Base {
     let minY = Infinity;
     let maxY = -Infinity;
 
-    this.canvas.forEachObject(obj => {
+    this.fabric.forEachObject(obj => {
       const coords = obj.getBounds();
 
       coords.forEach(point => {
@@ -153,10 +153,10 @@ export class Map extends Base {
   fitBounds(padding = 100) {
     this.onResize();
 
-    const { width, height } = this.canvas;
+    const { width, height } = this.fabric;
 
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
+    this.originX = -this.fabric.width / 2;
+    this.originY = -this.fabric.height / 2;
 
     const bounds = this.getBounds();
 
@@ -170,9 +170,9 @@ export class Map extends Base {
 
     this.zoom = Math.min(scaleX, scaleY);
 
-    this.canvas.setZoom(this.zoom);
+    this.fabric.setZoom(this.zoom);
 
-    this.canvas.absolutePan({
+    this.fabric.absolutePan({
       x: this.originX + this.center.x * this.zoom,
       y: this.originY - this.center.y * this.zoom
     });
@@ -189,12 +189,12 @@ export class Map extends Base {
   }
 
   reset() {
-    const { width, height } = this.canvas;
+    const { width, height } = this.fabric;
     this.zoom = this._options.zoom || 1;
     this.center = new Point();
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
-    this.canvas.absolutePan({
+    this.originX = -this.fabric.width / 2;
+    this.originY = -this.fabric.height / 2;
+    this.fabric.absolutePan({
       x: this.originX,
       y: this.originY
     });
@@ -208,22 +208,24 @@ export class Map extends Base {
   }
 
   onResize(width, height) {
-    const oldWidth = this.canvas.width;
-    const oldHeight = this.canvas.height;
+    const oldWidth = this.fabric.width;
+    const oldHeight = this.fabric.height;
 
     // Parameters required; automatic resize behavior removed
 
-    this.canvas.setWidth(width);
-    this.canvas.setHeight(height);
+    this.fabric.setWidth(width);
+    this.fabric.setHeight(height);
 
     if (this.grid) {
-      this.grid.setSize(width, height);
+      this.grid.width = width;
+      this.grid.height = height;
+      this.grid.update();
     }
 
     const dx = width / 2.0 - oldWidth / 2.0;
     const dy = height / 2.0 - oldHeight / 2.0;
 
-    this.canvas.relativePan({
+    this.fabric.relativePan({
       x: dx,
       y: dy
     });
@@ -232,7 +234,7 @@ export class Map extends Base {
   }
 
   update() {
-    const canvas = this.canvas;
+    const canvas = this.fabric;
 
     if (this.grid) {
       this.grid.update2({
@@ -266,4 +268,7 @@ export class Map extends Base {
   // registerListeners() method removed - all event handling code removed
 }
 
-export const map = (container, options) => new Map(container, options);
+export const map = (container, options) => {
+  const mapInstance = new Map(container, options);
+  return mapInstance.fabric;
+};

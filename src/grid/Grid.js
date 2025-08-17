@@ -9,10 +9,9 @@ import { Point } from '../geometry/Point.js';
 
 // constructor
 class Grid extends Base {
-  constructor(canvas, opts) {
+  constructor(context, opts) {
     super(opts);
-    this.canvas = canvas;
-    this.context = this.canvas.getContext('2d');
+    this.context = context;
     this.state = {};
     this.setDefaults();
     this.update(opts);
@@ -41,22 +40,25 @@ class Grid extends Base {
   }
 
   setSize(width, height) {
-    this.setWidth(width);
-    this.setHeight(height);
+    this.width = width;
+    this.height = height;
+    this.update();
   }
 
   setWidth(width) {
-    this.canvas.width = width;
+    this.width = width;
+    this.update();
   }
 
   setHeight(height) {
-    this.canvas.height = height;
+    this.height = height;
+    this.update();
   }
 
   // re-evaluate lines, calc options for renderer
   update(opts) {
     if (!opts) opts = {};
-    const shape = [this.canvas.width, this.canvas.height];
+    const shape = [this.width, this.height];
 
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
@@ -69,7 +71,7 @@ class Grid extends Base {
 
   // re-evaluate lines, calc options for renderer
   update2(center) {
-    const shape = [this.canvas.width, this.canvas.height];
+    const shape = [this.width, this.height];
     Object.assign(this.center, center);
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
@@ -313,7 +315,7 @@ class Grid extends Base {
 
   // draw grid to the canvas
   draw() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x);
     this.drawLines(this.state.y);
     return this;
