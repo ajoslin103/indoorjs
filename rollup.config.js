@@ -11,13 +11,13 @@ export default [
         format: 'umd',
         name: 'IndoorMap',
         globals: {
-          'fabric-pure-browser': 'fabric'
+          'fabric': 'fabric'
         }
       }
     ],
     plugins: [
       resolve()
     ],
-    external: ['fabric-pure-browser']
+    external: ['fabric']
   }
 ];
