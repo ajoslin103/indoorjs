@@ -64,30 +64,12 @@ export class Map extends Base {
     this.dx = 0;
     this.dy = 0;
 
-    try {
-      this.addFloorPlan();
-    } catch (e) {
-      console.error(e);
-    }
-
     if (this.showGrid) {
       this.addGrid();
     }
 
   }
 
-  addFloorPlan() {
-    if (this.floorplan) {
-      // If floorplan is already a fabric object, add it directly
-      if (this.floorplan.type && this.floorplan instanceof fabric.Object) {
-        this.addObject(this.floorplan);
-      } 
-      // If it was previously using the layer format, extract the shape
-      else if (this.floorplan.shape) {
-        this.addObject(this.floorplan.shape);
-      }
-    }
-  }
 
   addObject(object) {
     // this.canvas.renderOnAddRemove = false;
