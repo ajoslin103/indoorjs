@@ -93,7 +93,14 @@ export class Map extends Base {
     this.grid.width = this.fabric.width;
     this.grid.height = this.fabric.height;
     
-    // Draw the grid
+    // Hook into Fabric's render events to draw the grid after Fabric has rendered
+    this.fabric.on('after:render', () => {
+      if (this.grid) {
+        this.grid.draw();
+      }
+    });
+    
+    // Initial draw
     this.grid.draw();
   }
 
