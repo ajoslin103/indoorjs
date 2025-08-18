@@ -315,7 +315,6 @@ class Grid extends Base {
 
   // draw grid to the canvas
   draw() {
-    console.log('drawing grid');
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x);
     this.drawLines(this.state.y);
