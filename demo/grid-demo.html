@@ -142,22 +142,17 @@
         updateZoom();
 
         // Add sample content to demonstrate the library using direct object API
-        const polygon = new fabric.Polygon([
-          { x: 0, y: 0 },
-          { x: 200, y: 0 },
-          { x: 200, y: 150 },
-          { x: 0, y: 150 }
-        ], {
+        const circle = new fabric.Circle({
+          left: 100,
+          top: 100,
+          radius: 50,
           fill: '#f8f8f8',
           stroke: '#999',
           strokeWidth: 1
         });
         
-        // Add custom property for identifying object type if needed
-        polygon.objectType = 'building';
-        
         // Add the object directly to the map
-        map.addObject(polygon);
+        map.addObject(circle);
         
         // Mandatory update call to render changes
         map.update();
