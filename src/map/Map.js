@@ -65,7 +65,6 @@ export class Map extends Base {
 
   }
 
-
   addObject(object) {
     // this.canvas.renderOnAddRemove = false;
     if (!object) {
