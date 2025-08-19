@@ -248,7 +248,7 @@ class Grid extends Base {
 
         // axis params
         axis: true,
-        axisOrigin: 0,
+        axisOrigin: 0, // This is the point where the axis crosses
         axisWidth: 2,
         axisColor: 0.8,
 

@@ -92,6 +92,10 @@ export class Map extends Base {
     this.grid.width = this.fabric.width;
     this.grid.height = this.fabric.height;
     
+    // Initialize grid center coordinates to match Fabric.js center
+    this.grid.center.x = 0; // Center should be 0 to align with fabric's center
+    this.grid.center.y = 0; // Center should be 0 to align with fabric's center
+    
     // Hook into Fabric's render events to draw the grid after Fabric has rendered
     this.fabric.on('before:render', () => {
       if (this.grid) {
@@ -243,9 +247,11 @@ export class Map extends Base {
     const canvas = this.fabric;
 
     if (this.grid) {
+      // Set grid coordinates to match Fabric.js coordinate system
+      // The grid center should align with Fabric's (0,0) point
       this.grid.update2({
-        x: this.center.x,
-        y: this.center.y,
+        x: 0, // Use 0 to align with the Fabric.js origin
+        y: 0, // Use 0 to align with the Fabric.js origin
         zoom: this.zoom
       });
     }
