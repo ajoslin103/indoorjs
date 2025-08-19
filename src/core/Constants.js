@@ -32,36 +32,59 @@ export const ICON = {
   anchor: [64, 64]
 };
 
-fabric.Object.prototype.originX = 'center';
-fabric.Object.prototype.originY = 'center';
+/**
+ * Initialize Fabric.js configuration settings
+ * This function should be called before using any Fabric.js objects
+ */
+export function initializeFabric() {
+  if (typeof fabric === 'undefined') {
+    console.warn('Fabric.js not loaded. Cannot initialize Fabric settings.');
+    return;
+  }
 
-fabric.Object.prototype.lockUniScaling = true;
-fabric.Object.prototype.lockScalingFlip = true;
-fabric.Object.prototype.transparentCorners = false;
-fabric.Object.prototype.centeredScaling = true;
-// fabric.Object.prototype.cornerStyle = 'circle';
-fabric.Object.prototype.cornerColor = 'blue';
-fabric.Object.prototype.borderColor = 'blue';
-fabric.Object.prototype.borderOpacity = 0.7;
-fabric.Object.prototype.cornerOpacity = 0.7;
-fabric.Object.prototype.cornerStrokeColor = 'blue';
+  // // Set default origin to center for all Fabric objects
+  // fabric.Object.prototype.originX = 'center';
+  // fabric.Object.prototype.originY = 'center';
 
-fabric.Object.prototype.borderColor = '#ff0099';
-fabric.Object.prototype.cornerColor = '#00eaff';
-fabric.Object.prototype.cornerStrokeColor = '#00bbff';
+  // // Lock uniform scaling and prevent flipping
+  // fabric.Object.prototype.lockUniScaling = true;
+  // fabric.Object.prototype.lockScalingFlip = true;
+  
+  // // Visual settings
+  // fabric.Object.prototype.transparentCorners = false;
+  // fabric.Object.prototype.centeredScaling = true;
+  // // fabric.Object.prototype.cornerStyle = 'circle';
+  // fabric.Object.prototype.cornerColor = 'blue';
+  // fabric.Object.prototype.borderColor = 'blue';
+  // fabric.Object.prototype.borderOpacity = 0.7;
+  // fabric.Object.prototype.cornerOpacity = 0.7;
+  // fabric.Object.prototype.cornerStrokeColor = 'blue';
+  
+  // // Update border and corner colors
+  // fabric.Object.prototype.borderColor = '#ff0099';
+  // fabric.Object.prototype.cornerColor = '#00eaff';
+  // fabric.Object.prototype.cornerStrokeColor = '#00bbff';
+  
+  // // Performance settings
+  // fabric.Object.prototype.objectCaching = false;
+  // fabric.Group.prototype.objectCaching = true;
+  
+  // // Group selection appearance
+  // fabric.Group.prototype.selectionBackgroundColor = 'rgba(45,207,171,0.25)';
+  
+  // // Border style
+  // fabric.Object.prototype.borderDashArray = [3, 3];
+  
+  // // Padding
+  // fabric.Object.prototype.padding = 5;
+  
+  // Add getBounds utility method
+  fabric.Object.prototype.getBounds = function getBounds() {
+    const coords = [];
+    coords.push(new Point(this.left - this.width / 2.0, this.top - this.height / 2.0));
+    coords.push(new Point(this.left + this.width / 2.0, this.top + this.height / 2.0));
+    return coords;
+  };
 
-fabric.Object.prototype.objectCaching = false;
-fabric.Group.prototype.objectCaching = true;
-
-fabric.Group.prototype.selectionBackgroundColor = 'rgba(45,207,171,0.25)';
-
-fabric.Object.prototype.borderDashArray = [3, 3];
-
-fabric.Object.prototype.padding = 5;
-
-fabric.Object.prototype.getBounds = function getBounds() {
-  const coords = [];
-  coords.push(new Point(this.left - this.width / 2.0, this.top - this.height / 2.0));
-  coords.push(new Point(this.left + this.width / 2.0, this.top + this.height / 2.0));
-  return coords;
-};
+  console.log('Fabric.js settings initialized successfully.');
+}

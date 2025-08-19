@@ -2,7 +2,7 @@
 import { clamp } from '../lib/mumath/index.js';
 
 import Base from '../core/Base.js';
-import { MAP, Modes } from '../core/Constants.js';
+import { MAP, Modes, initializeFabric } from '../core/Constants.js';
 import Grid from '../grid/Grid.js';
 import { Point } from '../geometry/Point.js';
 
@@ -34,6 +34,9 @@ export class Map extends Base {
     canvas.width = this.width || this.container.clientWidth;
     canvas.height = this.height || this.container.clientHeight;
 
+    // Initialize Fabric.js settings before creating any Fabric objects
+    initializeFabric();
+    
     // create the fabric Canvas
     this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
@@ -260,7 +263,9 @@ export class Map extends Base {
       this.grid.render();
     }
 
-    canvas.zoomToPoint(new Point(this.x, this.y), this.zoom);
+    // Always zoom to the canvas center instead of a specific point
+    const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
+    canvas.zoomToPoint(centerPoint, this.zoom);
 
     if (this.isGrabMode === true || this.isRight) {
       canvas.relativePan(new Point(this.dx, this.dy));
