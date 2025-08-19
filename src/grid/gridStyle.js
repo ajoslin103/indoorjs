@@ -56,7 +56,7 @@ const gridStyle = {
     return state.lines.map(v => {
       if (!isMultiple(v, step, eps)) return null;
       if (almost(v, 0, eps)) return coord.orientation === 'y' ? null : '0';
-      v = Number((v / 100).toFixed(2));
+      // Display the actual value in Fabric.js units
       return coord.format(v);
     });
   }
