@@ -29,9 +29,6 @@ export function initializeFabric() {
     return;
   }
 
-  // set our desired zoom behavior
-  fabric.Object.prototype.centeredScaling = true;
-
   // // Set default origin to center for all Fabric objects
   // fabric.Object.prototype.originX = 'center';
   // fabric.Object.prototype.originY = 'center';
