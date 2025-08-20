@@ -152,12 +152,11 @@
             Math.min(mapFabric.maxZoom, newZoom)
           );
           
-          // Get mouse position from the event
-          const pointer = mapFabric.fabric.getPointer(opt.e);
-          
           // Set new zoom level
           mapFabric.zoom = constrainedZoom;
           
+          // Get mouse position from the event
+          // const pointer = mapFabric.fabric.getPointer(opt.e);
           // DO NOT // Create point to zoom at (mouse position)
           // DO NOT // Zoom directly with fabric's zoomToPoint method
           // const point = new fabric.Point(pointer.x, pointer.y);
