@@ -56,56 +56,126 @@
         const container = document.getElementById('canvas-container');
         
         // Initialize map with grid enabled
-        const map = new Map(container, {
+        const mapFabric = new Map(container, {
           width: 800,
           height: 600,
           showGrid: true // This will trigger map.addGrid() internally
         });
         
-        // Add wheel event support for zooming
-        container.addEventListener('wheel', (e) => {
-          // Prevent default scrolling behavior
+        // Variables to track right-click panning
+        let isPanning = false;
+        let lastPosX = 0;
+        let lastPosY = 0;
+        
+        // Prevent context menu on right-click
+        container.addEventListener('contextmenu', (e) => {
           e.preventDefault();
+          return false;
+        }, false);
+        
+        // Set up Fabric.js events for panning
+        mapFabric.fabric.on({
+          'mouse:down': function(opt) {
+            // Detect right-click (button === 2)
+            if (opt.e.button === 2) {
+              isPanning = true;
+              container.style.cursor = 'grab';
+              
+              // Store the initial pointer position
+              const pointer = mapFabric.fabric.getPointer(opt.e);
+              lastPosX = pointer.x;
+              lastPosY = pointer.y;
+              
+              // Prevent any default behavior
+              opt.e.preventDefault();
+              opt.e.stopPropagation();
+            }
+          },
           
-          // Get mouse position relative to container
-          const rect = container.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
+          'mouse:move': function(opt) {
+            if (isPanning) {
+              // Get current pointer position
+              const pointer = mapFabric.fabric.getPointer(opt.e);
+              
+              // Calculate the movement delta
+              const deltaX = pointer.x - lastPosX;
+              const deltaY = pointer.y - lastPosY;
+              
+              // If there is significant movement, pan the canvas
+              if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                // Apply panning directly with Fabric's relativePan
+                mapFabric.fabric.relativePan(new fabric.Point(deltaX, deltaY));
+                
+                // Update the last position
+                lastPosX = pointer.x;
+                lastPosY = pointer.y;
+              }
+              
+              // Prevent default behavior
+              opt.e.preventDefault();
+              opt.e.stopPropagation();
+            }
+          },
+          
+          'mouse:up': function() {
+            // End panning on mouse up
+            isPanning = false;
+            container.style.cursor = 'default';
+          },
+          
+          'selection:created': function(opt) {
+            // Disable selection during panning
+            if (isPanning) {
+              mapFabric.fabric.discardActiveObject();
+              mapFabric.fabric.requestRenderAll();
+            }
+          }
+        });
+        
+        // Use Fabric's mouse:wheel event for zooming
+        mapFabric.fabric.on('mouse:wheel', (opt) => {
+          // Prevent default scrolling behavior
+          opt.e.preventDefault();
+          opt.e.stopPropagation();
           
           // Calculate zoom change based on wheel delta
           // Use percentage-based zoom (5% per wheel tick)
           const zoomFactor = 1.05;
-          const direction = e.deltaY < 0 ? 1 : -1;
+          const direction = opt.e.deltaY < 0 ? 1 : -1;
           const newZoom = direction > 0 
-            ? map.zoom * zoomFactor 
-            : map.zoom / zoomFactor;
+            ? mapFabric.zoom * zoomFactor 
+            : mapFabric.zoom / zoomFactor;
             
           // Ensure zoom stays within bounds
           const constrainedZoom = Math.max(
-            map.minZoom, 
-            Math.min(map.maxZoom, newZoom)
+            mapFabric.minZoom, 
+            Math.min(mapFabric.maxZoom, newZoom)
           );
           
-          // Set point to zoom at (mouse position)
-          map.x = mouseX;
-          map.y = mouseY;
+          // Get mouse position from the event
+          const pointer = mapFabric.fabric.getPointer(opt.e);
           
           // Set new zoom level
-          map.zoom = constrainedZoom;
+          mapFabric.zoom = constrainedZoom;
+          
+          // DO NOT // Create point to zoom at (mouse position)
+          // DO NOT // Zoom directly with fabric's zoomToPoint method
+          // const point = new fabric.Point(pointer.x, pointer.y);
+          // mapFabric.fabric.zoomToPoint(point, mapFabric.zoom);
           
           // Update the map with new zoom level
-          map.update();
+          mapFabric.update();
           
           // Update UI display
           updateUIDisplay();
-        }, { passive: false });
+        });
 
         // Initialize controls with explicit update() calls
         document.getElementById('resetView')?.addEventListener('click', () => {
           // Reset view using available reset() method
-          if (map.reset) {
-            map.reset();
-            map.update(); // Mandatory update call after changes
+          if (mapFabric.reset) {
+            mapFabric.reset();
+            mapFabric.update(); // Mandatory update call after changes
           }
         });
 
@@ -114,9 +184,9 @@
         // Keeping the UI elements for visual consistency but not adding functionality
         
         // Set initial parameters
-        map.center = { x: 0, y: 0 };
-        map.setZoom(1.0);
-        map.update(); // Mandatory update call
+        mapFabric.center = { x: 0, y: 0 };
+        mapFabric.setZoom(1.0);
+        mapFabric.update(); // Mandatory update call
 
         const minZoom = document.getElementById('minZoomInput');
         const maxZoom = document.getElementById('maxZoomInput');
@@ -126,12 +196,12 @@
           
           // Update zoom according to input values - directly setting properties
           // Map.js has minZoom and maxZoom properties that we can set
-          map.minZoom = min;
-          map.maxZoom = max;
+          mapFabric.minZoom = min;
+          mapFabric.maxZoom = max;
           
           // Use the documented setZoom method
-          map.setZoom(Math.max(min, Math.min(max, map.zoom || 1.0)));
-          map.update(); // Mandatory update call
+          mapFabric.setZoom(Math.max(min, Math.min(max, mapFabric.zoom || 1.0)));
+          mapFabric.update(); // Mandatory update call
         };
         
         // Add event listeners for zoom controls
@@ -152,16 +222,16 @@
         });
         
         // Add the object directly to the map
-        map.addObject(circle);
+        mapFabric.addObject(circle);
         
         // Mandatory update call to render changes
-        map.update();
+        mapFabric.update();
         
         // Custom display update function without using events
         function updateUIDisplay() {
           // Update zoom level display
           if (document.getElementById('zoomLevel')) {
-            const zoomLevel = `Zoom: ${map.zoom ? map.zoom.toFixed(2) : '1.00'}x`;
+            const zoomLevel = `Zoom: ${mapFabric.zoom ? mapFabric.zoom.toFixed(2) : '1.00'}x`;
             document.getElementById('zoomLevel').textContent = zoomLevel;
           }
           
@@ -189,6 +259,13 @@
         zoomInfoSpan.style.marginLeft = '10px';
         zoomInfoSpan.style.fontStyle = 'italic';
         document.querySelector('.controls').appendChild(zoomInfoSpan);
+        
+        // Add info about right-click panning
+        const panInfoSpan = document.createElement('span');
+        panInfoSpan.textContent = ' Right-click + drag to pan';
+        panInfoSpan.style.marginLeft = '10px';
+        panInfoSpan.style.fontStyle = 'italic';
+        document.querySelector('.controls').appendChild(panInfoSpan);
       });
     </script>
 </body>

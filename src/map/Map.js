@@ -1,16 +1,9 @@
-// import panzoom from '../lib/panzoom';
 import { clamp } from '../lib/mumath/index.js';
 
 import Base from '../core/Base.js';
 import { MAP, Modes, initializeFabric } from '../core/Constants.js';
 import Grid from '../grid/Grid.js';
 import { Point } from '../geometry/Point.js';
-
-// import ModesMixin from './ModesMixin';
-// import Measurement from '../measurement/Measurement';
-// import { mix } from '../lib/mix';
-
-// export class Map extends mix(Base).with(ModesMixin) {
 export class Map extends Base {
   constructor(container, options) {
     super(options);
@@ -52,10 +45,6 @@ export class Map extends Base {
       y: this.originY
     });
 
-    // this.center = {
-    //   x: this.canvas.width / 2.0,
-    //   y: this.canvas.height / 2.0
-    // };
 
     this.x = this.center.x;
     this.y = this.center.y;
@@ -266,14 +255,6 @@ export class Map extends Base {
     // Always zoom to the canvas center instead of a specific point
     const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
     canvas.zoomToPoint(centerPoint, this.zoom);
-
-    if (this.isGrabMode === true || this.isRight) {
-      canvas.relativePan(new Point(this.dx, this.dy));
-      // Event emission removed per non-reactive conversion
-      this.setCursor('grab');
-    } else {
-      this.setCursor('pointer');
-    }
 
     const now = Date.now();
     if (!this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
