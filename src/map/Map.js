@@ -99,25 +99,6 @@ export class Map extends Base {
     this.grid.draw();
   }
 
-  moveTo(obj, index) {
-    if (!obj) return;
-    
-    if (index !== undefined) {
-      obj.zIndex = index;
-    }
-    
-    this.fabric.moveTo(obj, obj.zIndex);
-  }
-
-  cloneCanvas(canvas) {
-    canvas = canvas || this.fabric;
-    const clone = document.createElement('canvas');
-    clone.width = canvas.width;
-    clone.height = canvas.height;
-    canvas.wrapperEl.appendChild(clone);
-    return clone;
-  }
-
   setZoom(zoom) {
     const { width, height } = this.fabric;
     this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
@@ -130,64 +111,6 @@ export class Map extends Base {
     setTimeout(() => {
       this.update();
     }, 0);
-  }
-
-  getBounds() {
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-
-    this.fabric.forEachObject(obj => {
-      const coords = obj.getBounds();
-
-      coords.forEach(point => {
-        minX = Math.min(minX, point.x);
-        maxX = Math.max(maxX, point.x);
-        minY = Math.min(minY, point.y);
-        maxY = Math.max(maxY, point.y);
-      });
-    });
-
-    return [new Point(minX, minY), new Point(maxX, maxY)];
-  }
-
-  fitBounds(padding = 100) {
-    this.onResize();
-
-    const { width, height } = this.fabric;
-
-    this.originX = -this.fabric.width / 2;
-    this.originY = -this.fabric.height / 2;
-
-    const bounds = this.getBounds();
-
-    this.center.x = (bounds[0].x + bounds[1].x) / 2.0;
-    this.center.y = -(bounds[0].y + bounds[1].y) / 2.0;
-
-    const boundWidth = Math.abs(bounds[0].x - bounds[1].x) + padding;
-    const boundHeight = Math.abs(bounds[0].y - bounds[1].y) + padding;
-    const scaleX = width / boundWidth;
-    const scaleY = height / boundHeight;
-
-    this.zoom = Math.min(scaleX, scaleY);
-
-    this.fabric.setZoom(this.zoom);
-
-    this.fabric.absolutePan({
-      x: this.originX + this.center.x * this.zoom,
-      y: this.originY - this.center.y * this.zoom
-    });
-
-    this.update();
-    // Use setTimeout for browser compatibility
-    setTimeout(() => {
-      this.update();
-    }, 0);
-  }
-
-  setCursor(cursor) {
-    this.container.style.cursor = cursor;
   }
 
   reset() {
