@@ -132,6 +132,10 @@
           }
         });
         
+        // Variable to hold the zoom timeout ID
+        let zoomDebounceTimeout = null;
+        const ZOOM_DEBOUNCE_DELAY = 200; // ms
+        
         // Use Fabric's mouse:wheel event for zooming
         mapFabric.fabric.on('mouse:wheel', (opt) => {
           // Prevent default scrolling behavior
@@ -155,18 +159,38 @@
           // Set new zoom level
           mapFabric.zoom = constrainedZoom;
           
-          // Get mouse position from the event
-          // const pointer = mapFabric.fabric.getPointer(opt.e);
-          // DO NOT // Create point to zoom at (mouse position)
-          // DO NOT // Zoom directly with fabric's zoomToPoint method
+          // DO NOT WRITE ANY CODE CALLING zoomToPoint
           // const point = new fabric.Point(pointer.x, pointer.y);
           // mapFabric.fabric.zoomToPoint(point, mapFabric.zoom);
+          // DO NOT WRITE ANY CODE CALLING zoomToPoint
           
           // Update the map with new zoom level
           mapFabric.update();
           
           // Update UI display
           updateUIDisplay();
+          
+          // Clear any existing timeout to reset debounce timer
+          if (zoomDebounceTimeout) {
+            clearTimeout(zoomDebounceTimeout);
+          }
+          
+          // Set a timeout for final update after zooming stops
+          zoomDebounceTimeout = setTimeout(() => {
+            console.log('Zoom completed - performing final grid alignment');
+            
+            // Ensure grid is properly aligned after zoom completed
+            if (mapFabric.grid) {
+              mapFabric.grid.update();
+              mapFabric.grid.render();
+            }
+            
+            // Force a complete redraw to ensure everything is rendered properly
+            mapFabric.fabric.requestRenderAll();
+            
+            // Fire an event that zooming has completed
+            mapFabric.fabric.fire('zoom:completed', { zoom: mapFabric.zoom });
+          }, ZOOM_DEBOUNCE_DELAY);
         });
 
         // Initialize controls with explicit update() calls
