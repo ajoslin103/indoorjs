@@ -250,6 +250,11 @@ export class Schematic extends Base {
         // Pan the fabric canvas
         this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
         
+        // Update the map to refresh the grid position after panning
+        if (this.mapInstance) {
+          this.mapInstance.update();
+        }
+        
         // Emit a pan event
         this.emit('pan:move', { deltaX, deltaY });
       }
@@ -259,6 +264,27 @@ export class Schematic extends Base {
       if (this.isPanning) {
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
+        
+        // Final grid update when panning completes
+        if (this.mapInstance) {
+          this.mapInstance.update();
+        }
+        
+        this.emit('pan:completed');
+      }
+    });
+    
+    // Handle cases where the mouse leaves the canvas during panning
+    this.fabric.on('mouse:out', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        this.fabric.defaultCursor = 'default';
+        
+        // Final grid update when mouse leaves during panning
+        if (this.mapInstance) {
+          this.mapInstance.update();
+        }
+        
         this.emit('pan:completed');
       }
     });
@@ -281,24 +307,30 @@ export class Schematic extends Base {
     // Calculate zoom change based on wheel delta
     const zoomFactor = 1.05;
     const direction = opt.e.deltaY < 0 ? 1 : -1;
-    const newZoom = direction > 0
-      ? this.mapInstance.zoom * zoomFactor
-      : this.mapInstance.zoom / zoomFactor;
     
-    // Ensure zoom stays within bounds
-    const constrainedZoom = Math.max(
-      this.mapInstance.minZoom,
-      Math.min(this.mapInstance.maxZoom, newZoom)
-    );
-    
-    // Set new zoom level
-    this.mapInstance.zoom = constrainedZoom;
-    
-    // Update the map with new zoom level
-    this.mapInstance.update();
-    
-    // Emit zoom change event
-    this.emit('zoom:change', { zoom: constrainedZoom });
+    // Update the zoom level in the Map instance
+    if (this.mapInstance) {
+      // Calculate the new zoom level based on wheel direction
+      const currentZoom = this.mapInstance.zoom;
+      const newZoom = direction > 0
+        ? currentZoom * zoomFactor
+        : currentZoom / zoomFactor;
+      
+      // Clamp the zoom level to the configured limits
+      const clampedZoom = Math.max(
+        this.mapInstance.minZoom,
+        Math.min(newZoom, this.mapInstance.maxZoom)
+      );
+      
+      // Apply the new zoom level to the Map instance
+      this.mapInstance.zoom = clampedZoom;
+      
+      // Update the map which will recalculate grid position based on current viewport
+      this.mapInstance.update();
+      
+      // Emit a zoom event with the new zoom level
+      this.emit('zoom', { zoom: clampedZoom });
+    }
     
     // Clear any existing timeout to reset debounce timer
     if (this.zoomDebounceTimeout) {
@@ -308,13 +340,14 @@ export class Schematic extends Base {
     // Set a timeout for final update after zooming stops
     this.zoomDebounceTimeout = setTimeout(() => {
       // Ensure grid is properly aligned after zoom completed
-      if (this.mapInstance.grid) {
-        this.mapInstance.grid.update();
-        this.mapInstance.grid.render();
+      if (this.mapInstance) {
+        // Use the map's update method which will correctly calculate the grid position
+        // based on the current viewport transform
+        this.mapInstance.update();
+        
+        // Force a complete redraw to ensure everything is rendered properly
+        this.fabric.requestRenderAll();
       }
-      
-      // Force a complete redraw to ensure everything is rendered properly
-      this.fabric.requestRenderAll();
       
       // Fire an event that zooming has completed
       this.emit('zoom:completed', { zoom: this.mapInstance.zoom });
@@ -329,6 +362,10 @@ export class Schematic extends Base {
   setZoom(zoom) {
     if (this.mapInstance) {
       this.mapInstance.setZoom(zoom);
+      
+      // After setting zoom, make sure grid is properly positioned based on viewport transform
+      this.mapInstance.update();
+      
       this.emit('zoom:change', { zoom: this.mapInstance.zoom });
     }
     return this;
