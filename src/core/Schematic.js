@@ -1,5 +1,6 @@
 import Base from './Base.js';
-import { map } from '../map/Map.js';
+import { Map } from '../map/Map.js';
+import GridControl from '../grid/GridControl.js';
 
 /**
  * Schematic class for handling event subscriptions and emissions
@@ -10,7 +11,9 @@ export class Schematic extends Base {
   constructor(container, options) {
     super(options);
 
-    this.defaults = {};
+    this.defaults = {
+      showGrid: true
+    };
 
     // set defaults
     Object.assign(this, this.defaults);
@@ -23,8 +26,13 @@ export class Schematic extends Base {
     // Store event listeners
     this.listeners = {};
     
-    // Create fabric instance using map factory function
-    this.fabric = map(this.container, options);
+    // Create a Map instance and get its fabric instance
+    const mapInstance = new Map(this.container, options);
+    this.fabric = mapInstance.fabric;
+    this.mapInstance = mapInstance; // Store reference to map instance
+    
+    // Create a grid control instance
+    this.gridControl = new GridControl(options && options.grid);
   }
 
   /**
@@ -128,6 +136,62 @@ export class Schematic extends Base {
   clearAllListeners() {
     this.listeners = {};
     return this;
+  }
+
+  /**
+   * Update grid control settings
+   * @param {Object} gridOptions - Grid options to update
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  updateGridControl(gridOptions) {
+    this.gridControl.update(gridOptions);
+    
+    // If the map has a grid, apply the settings immediately
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.applyGridControl();
+    }
+    
+    return this;
+  }
+
+  /**
+   * Apply the current grid control settings to the map's grid
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  applyGridControl() {
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.gridControl.applyToGrid(this.mapInstance.grid);
+      this.mapInstance.grid.render();
+    }
+    return this;
+  }
+
+  /**
+   * Show or hide the grid
+   * @param {boolean} visible - Whether the grid should be visible
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  showGrid(visible) {
+    this.gridControl.setVisible(visible);
+    
+    // If true and grid doesn't exist yet, create it
+    if (visible && this.mapInstance && !this.mapInstance.grid) {
+      this.mapInstance.addGrid();
+      this.applyGridControl();
+    } else if (this.mapInstance && this.mapInstance.grid) {
+      // If the grid exists, just apply the visibility setting
+      this.applyGridControl();
+    }
+    
+    return this;
+  }
+
+  /**
+   * Get the current grid control instance
+   * @return {GridControl} - The grid control instance
+   */
+  getGridControl() {
+    return this.gridControl;
   }
 }
 

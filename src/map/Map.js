@@ -76,7 +76,7 @@ export class Map extends Base {
     return object;
   }
 
-  addGrid() {
+  addGrid(gridControl) {
     // Create grid using the fabric canvas context
     this.grid = new Grid(this.context, this);
     
@@ -95,8 +95,15 @@ export class Map extends Base {
       }
     });
     
+    // Apply grid control settings if provided
+    if (gridControl) {
+      gridControl.applyToGrid(this.grid);
+    }
+    
     // Initial draw
     this.grid.draw();
+    
+    return this.grid;
   }
 
   setZoom(zoom) {
