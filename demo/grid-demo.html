@@ -70,10 +70,15 @@
         // Get the map instance from the schematic
         const mapFabric = schematic.mapInstance;
         
-        // Variables for tracking pan/zoom state
-        let isPanning = false;
-        let lastPosX = 0;
-        let lastPosY = 0;
+        // Listen for pan events from Schematic
+        schematic.on('pan:move', (data) => {
+          // Could update UI here if needed
+        });
+        
+        schematic.on('pan:completed', () => {
+          // Could perform actions when panning completes
+          console.log('Panning completed');
+        });
         
         // Listen for zoom events from Schematic
         schematic.on('zoom:change', (data) => {

@@ -214,6 +214,11 @@ export class Schematic extends Base {
     // Register mouse wheel event for zooming
     this.fabric.on('mouse:wheel', this.handleMouseWheel.bind(this));
     
+    // Variables to track right-click panning
+    this.isPanning = false;
+    this.lastPosX = 0;
+    this.lastPosY = 0;
+    
     // Prevent context menu on right-click for panning
     if (this.container) {
       this.container.addEventListener('contextmenu', (e) => {
@@ -221,6 +226,42 @@ export class Schematic extends Base {
         return false;
       }, false);
     }
+    
+    // Register mouse events for right-click panning
+    this.fabric.on('mouse:down', (opt) => {
+      // Check if it's a right-click (button 3)
+      if (opt.e.button === 2) {
+        this.isPanning = true;
+        this.lastPosX = opt.e.clientX;
+        this.lastPosY = opt.e.clientY;
+        this.fabric.defaultCursor = 'grabbing';
+      }
+    });
+    
+    this.fabric.on('mouse:move', (opt) => {
+      if (this.isPanning) {
+        const deltaX = opt.e.clientX - this.lastPosX;
+        const deltaY = opt.e.clientY - this.lastPosY;
+        
+        // Update last position
+        this.lastPosX = opt.e.clientX;
+        this.lastPosY = opt.e.clientY;
+        
+        // Pan the fabric canvas
+        this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
+        
+        // Emit a pan event
+        this.emit('pan:move', { deltaX, deltaY });
+      }
+    });
+    
+    this.fabric.on('mouse:up', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        this.fabric.defaultCursor = 'default';
+        this.emit('pan:completed');
+      }
+    });
     
     return this;
   }
