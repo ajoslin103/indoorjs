@@ -1,18 +1,17 @@
-import alpha from '../lib/color-alpha';
-import Base from '../core/Base';
+import alpha from '../lib/color-alpha.js';
+import Base from '../core/Base.js';
 import {
   clamp, almost, len, parseUnit, toPx, isObj
-} from '../lib/mumath/index';
-import gridStyle from './gridStyle';
-import Axis from './Axis';
-import { Point } from '../geometry/Point';
+} from '../lib/mumath/index.js';
+import gridStyle from './gridStyle.js';
+import Axis from './Axis.js';
+import { Point } from '../geometry/Point.js';
 
 // constructor
 class Grid extends Base {
-  constructor(canvas, opts) {
+  constructor(context, opts) {
     super(opts);
-    this.canvas = canvas;
-    this.context = this.canvas.getContext('2d');
+    this.context = context;
     this.state = {};
     this.setDefaults();
     this.update(opts);
@@ -41,42 +40,45 @@ class Grid extends Base {
   }
 
   setSize(width, height) {
-    this.setWidth(width);
-    this.setHeight(height);
+    this.width = width;
+    this.height = height;
+    this.update();
   }
 
   setWidth(width) {
-    this.canvas.width = width;
+    this.width = width;
+    this.update();
   }
 
   setHeight(height) {
-    this.canvas.height = height;
+    this.height = height;
+    this.update();
   }
 
   // re-evaluate lines, calc options for renderer
   update(opts) {
     if (!opts) opts = {};
-    const shape = [this.canvas.width, this.canvas.height];
+    const shape = [this.width, this.height];
 
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
     this.state.y = this.calcCoordinate(this.axisY, shape, this);
     this.state.x.opposite = this.state.y;
     this.state.y.opposite = this.state.x;
-    this.emit('update', opts);
+    // emit('update') removed
     return this;
   }
 
   // re-evaluate lines, calc options for renderer
   update2(center) {
-    const shape = [this.canvas.width, this.canvas.height];
+    const shape = [this.width, this.height];
     Object.assign(this.center, center);
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
     this.state.y = this.calcCoordinate(this.axisY, shape, this);
     this.state.x.opposite = this.state.y;
     this.state.y.opposite = this.state.x;
-    this.emit('update', center);
+    // emit('update') removed
 
     this.axisX.offset = center.x;
     this.axisX.zoom = 1 / center.zoom;
@@ -246,7 +248,7 @@ class Grid extends Base {
 
         // axis params
         axis: true,
-        axisOrigin: 0,
+        axisOrigin: 0, // This is the point where the axis crosses
         axisWidth: 2,
         axisColor: 0.8,
 
@@ -313,7 +315,7 @@ class Grid extends Base {
 
   // draw grid to the canvas
   draw() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x);
     this.drawLines(this.state.y);
     return this;

@@ -1,15 +1,10 @@
-import panzoom from '../lib/panzoom';
-import { clamp } from '../lib/mumath/index';
+import { clamp } from '../lib/mumath/index.js';
 
-import Base from '../core/Base';
-import { MAP, Modes } from '../core/Constants';
-import Grid from '../grid/Grid';
-import { Point } from '../geometry/Point';
-import ModesMixin from './ModesMixin';
-import Measurement from '../measurement/Measurement';
-import { mix } from '../lib/mix';
-
-export class Map extends mix(Base).with(ModesMixin) {
+import Base from '../core/Base.js';
+import { MAP, Modes, initializeFabric } from '../core/Constants.js';
+import Grid from '../grid/Grid.js';
+import { Point } from '../geometry/Point.js';
+export class Map extends Base {
   constructor(container, options) {
     super(options);
 
@@ -32,231 +27,137 @@ export class Map extends mix(Base).with(ModesMixin) {
     canvas.width = this.width || this.container.clientWidth;
     canvas.height = this.height || this.container.clientHeight;
 
-    this.canvas = new fabric.Canvas(canvas, {
+    // Initialize Fabric.js settings before creating any Fabric objects
+    initializeFabric();
+    
+    // create the fabric Canvas
+    this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
       renderOnAddRemove: true
     });
-    this.context = this.canvas.getContext('2d');
+    this.context = this.fabric.getContext('2d');
 
-    this.on('render', () => {
-      if (this.autostart) this.clear();
-    });
+    this.originX = -this.fabric.width / 2;
+    this.originY = -this.fabric.height / 2;
 
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
-
-    this.canvas.absolutePan({
+    this.fabric.absolutePan({
       x: this.originX,
       y: this.originY
     });
 
-    // this.center = {
-    //   x: this.canvas.width / 2.0,
-    //   y: this.canvas.height / 2.0
-    // };
 
     this.x = this.center.x;
     this.y = this.center.y;
     this.dx = 0;
     this.dy = 0;
 
-    try {
-      this.addFloorPlan();
-    } catch (e) {
-      console.error(e);
-    }
-
     if (this.showGrid) {
       this.addGrid();
     }
 
-    this.setMode(this.mode || Modes.GRAB);
-
-    const vm = this;
-    panzoom(this.container, e => {
-      vm.panzoom(e);
-    });
-
-    this.registerListeners();
-
-    setTimeout(() => {
-      this.emit('ready', this);
-    }, 300);
-
-    this.measurement = new Measurement(this);
   }
 
-  addFloorPlan() {
-    if (!this.floorplan) return;
-    const vm = this;
-    this.floorplan.on('load', img => {
-      vm.addLayer(img);
-    });
-  }
-
-  addLayer(layer) {
+  addObject(object) {
     // this.canvas.renderOnAddRemove = false;
-    if (!layer.shape) {
-      console.error('shape is undefined');
+    if (!object) {
+      console.error('object is undefined');
       return;
     }
-    this.canvas.add(layer.shape);
-    this.canvas._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
+    this.fabric.add(object);
+    this.fabric._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
 
-    if (layer.shape.keepOnZoom) {
-      const scale = 1.0 / this.zoom;
-      layer.shape.set('scaleX', scale);
-      layer.shape.set('scaleY', scale);
-      layer.shape.setCoords();
-      this.emit(`${layer.class}scaling`, layer);
-    }
-    if (layer.class) {
-      this.emit(`${layer.class}:added`, layer);
-    }
-
-    // this.canvas.renderOnAddRemove = true;
-
-    // this.update();
-    this.canvas.requestRenderAll();
+    this.fabric.requestRenderAll();
+    return object;
   }
 
-  removeLayer(layer) {
-    if (!layer || !layer.shape) return;
-    if (layer.class) {
-      this.emit(`${layer.class}:removed`, layer);
-    }
-    this.canvas.remove(layer.shape);
+  removeObject(object) {
+    if (!object) return;
+    this.fabric.remove(object);
+    return object;
   }
 
-  addGrid() {
-    this.gridCanvas = this.cloneCanvas();
-    this.gridCanvas.setAttribute('id', 'indoors-grid-canvas');
-    this.grid = new Grid(this.gridCanvas, this);
+  addGrid(gridControl) {
+    // Create grid using the fabric canvas context
+    this.grid = new Grid(this.context, this);
+    
+    // Set grid dimensions to match fabric canvas
+    this.grid.width = this.fabric.width;
+    this.grid.height = this.fabric.height;
+    
+    // Initialize grid center coordinates to match Fabric.js center
+    this.grid.center.x = 0; // Center should be 0 to align with fabric's center
+    this.grid.center.y = 0; // Center should be 0 to align with fabric's center
+    
+    // Hook into Fabric's render events to draw the grid after Fabric has rendered
+    this.fabric.on('before:render', () => {
+      if (this.grid) {
+        this.grid.draw();
+      }
+    });
+    
+    // Apply grid control settings if provided
+    if (gridControl) {
+      gridControl.applyToGrid(this.grid);
+    }
+    
+    // Initial draw
     this.grid.draw();
-  }
-
-  moveTo(obj, index) {
-    if (index !== undefined) {
-      obj.zIndex = index;
-    }
-    this.canvas.moveTo(obj.shape, obj.zIndex);
-  }
-
-  cloneCanvas(canvas) {
-    canvas = canvas || this.canvas;
-    const clone = document.createElement('canvas');
-    clone.width = canvas.width;
-    clone.height = canvas.height;
-    canvas.wrapperEl.appendChild(clone);
-    return clone;
+    
+    return this.grid;
   }
 
   setZoom(zoom) {
-    const { width, height } = this.canvas;
+    const { width, height } = this.fabric;
     this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
     this.dx = 0;
     this.dy = 0;
     this.x = width / 2.0;
     this.y = height / 2.0;
     this.update();
-    process.nextTick(() => {
+    // Use setTimeout for browser compatibility
+    setTimeout(() => {
       this.update();
-    });
-  }
-
-  getBounds() {
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-
-    this.canvas.forEachObject(obj => {
-      const coords = obj.getBounds();
-
-      coords.forEach(point => {
-        minX = Math.min(minX, point.x);
-        maxX = Math.max(maxX, point.x);
-        minY = Math.min(minY, point.y);
-        maxY = Math.max(maxY, point.y);
-      });
-    });
-
-    return [new Point(minX, minY), new Point(maxX, maxY)];
-  }
-
-  fitBounds(padding = 100) {
-    this.onResize();
-
-    const { width, height } = this.canvas;
-
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
-
-    const bounds = this.getBounds();
-
-    this.center.x = (bounds[0].x + bounds[1].x) / 2.0;
-    this.center.y = -(bounds[0].y + bounds[1].y) / 2.0;
-
-    const boundWidth = Math.abs(bounds[0].x - bounds[1].x) + padding;
-    const boundHeight = Math.abs(bounds[0].y - bounds[1].y) + padding;
-    const scaleX = width / boundWidth;
-    const scaleY = height / boundHeight;
-
-    this.zoom = Math.min(scaleX, scaleY);
-
-    this.canvas.setZoom(this.zoom);
-
-    this.canvas.absolutePan({
-      x: this.originX + this.center.x * this.zoom,
-      y: this.originY - this.center.y * this.zoom
-    });
-
-    this.update();
-    process.nextTick(() => {
-      this.update();
-    });
-  }
-
-  setCursor(cursor) {
-    this.container.style.cursor = cursor;
+    }, 0);
   }
 
   reset() {
-    const { width, height } = this.canvas;
+    const { width, height } = this.fabric;
     this.zoom = this._options.zoom || 1;
     this.center = new Point();
-    this.originX = -this.canvas.width / 2;
-    this.originY = -this.canvas.height / 2;
-    this.canvas.absolutePan({
+    this.originX = -this.fabric.width / 2;
+    this.originY = -this.fabric.height / 2;
+    this.fabric.absolutePan({
       x: this.originX,
       y: this.originY
     });
     this.x = width / 2.0;
     this.y = height / 2.0;
     this.update();
-    process.nextTick(() => {
+    // Use setTimeout for browser compatibility
+    setTimeout(() => {
       this.update();
-    });
+    }, 0);
   }
 
   onResize(width, height) {
-    const oldWidth = this.canvas.width;
-    const oldHeight = this.canvas.height;
+    const oldWidth = this.fabric.width;
+    const oldHeight = this.fabric.height;
 
-    width = width || this.container.clientWidth;
-    height = height || this.container.clientHeight;
+    // Parameters required; automatic resize behavior removed
 
-    this.canvas.setWidth(width);
-    this.canvas.setHeight(height);
+    this.fabric.setWidth(width);
+    this.fabric.setHeight(height);
 
     if (this.grid) {
-      this.grid.setSize(width, height);
+      this.grid.width = width;
+      this.grid.height = height;
+      this.grid.update();
     }
 
     const dx = width / 2.0 - oldWidth / 2.0;
     const dy = height / 2.0 - oldHeight / 2.0;
 
-    this.canvas.relativePan({
+    this.fabric.relativePan({
       x: dx,
       y: dy
     });
@@ -265,339 +166,37 @@ export class Map extends mix(Base).with(ModesMixin) {
   }
 
   update() {
-    const canvas = this.canvas;
+    const canvas = this.fabric;
 
     if (this.grid) {
+      // Set grid coordinates to match Fabric.js coordinate system
+      // The grid center should align with Fabric's (0,0) point
       this.grid.update2({
-        x: this.center.x,
-        y: this.center.y,
+        x: 0, // Use 0 to align with the Fabric.js origin
+        y: 0, // Use 0 to align with the Fabric.js origin
         zoom: this.zoom
       });
     }
-    this.emit('update', this);
+    // Event emission removed per non-reactive conversion
     if (this.grid) {
       this.grid.render();
     }
 
-    canvas.zoomToPoint(new Point(this.x, this.y), this.zoom);
-
-    if (this.isGrabMode() || this.isRight) {
-      canvas.relativePan(new Point(this.dx, this.dy));
-      this.emit('panning');
-      this.setCursor('grab');
-    } else {
-      this.setCursor('pointer');
-    }
+    // Always zoom to the canvas center instead of a specific point
+    const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
+    canvas.zoomToPoint(centerPoint, this.zoom);
 
     const now = Date.now();
     if (!this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
       return;
     }
     this.lastUpdatedTime = now;
-
-    const objects = canvas.getObjects();
-    let hasKeepZoom = false;
-    for (let i = 0; i < objects.length; i += 1) {
-      const object = objects[i];
-      if (object.keepOnZoom) {
-        object.set('scaleX', 1.0 / this.zoom);
-        object.set('scaleY', 1.0 / this.zoom);
-        object.setCoords();
-        hasKeepZoom = true;
-        this.emit(`${object.class}scaling`, object);
-      }
-    }
-    if (hasKeepZoom) canvas.requestRenderAll();
   }
 
-  panzoom(e) {
-    // enable interactions
-    const { width, height } = this.canvas;
-    // shift start
-    const zoom = clamp(-e.dz, -height * 0.75, height * 0.75) / height;
-
-    const prevZoom = 1 / this.zoom;
-    let curZoom = prevZoom * (1 - zoom);
-    curZoom = clamp(curZoom, this.minZoom, this.maxZoom);
-
-    let { x, y } = this.center;
-
-    // pan
-    const oX = 0.5;
-    const oY = 0.5;
-    if (this.isGrabMode() || e.isRight) {
-      x -= prevZoom * e.dx;
-      y += prevZoom * e.dy;
-      this.setCursor('grab');
-    } else {
-      this.setCursor('pointer');
-    }
-
-    if (this.zoomEnabled) {
-      const tx = e.x / width - oX;
-      x -= width * (curZoom - prevZoom) * tx;
-      const ty = oY - e.y / height;
-      y -= height * (curZoom - prevZoom) * ty;
-    }
-    this.center.setX(x);
-    this.center.setY(y);
-    this.zoom = 1 / curZoom;
-    this.dx = e.dx;
-    this.dy = e.dy;
-    this.x = e.x0;
-    this.y = e.y0;
-    this.isRight = e.isRight;
-    this.update();
-  }
-
-  setView(view) {
-    this.dx = 0;
-    this.dy = 0;
-    this.x = 0;
-    this.y = 0;
-    view.y *= -1;
-
-    const dx = this.center.x - view.x;
-    const dy = -this.center.y + view.y;
-
-    this.center.copy(view);
-
-    this.canvas.relativePan(new Point(dx * this.zoom, dy * this.zoom));
-
-    this.canvas.renderAll();
-
-    this.update();
-
-    process.nextTick(() => {
-      this.update();
-    });
-  }
-
-  registerListeners() {
-    const vm = this;
-
-    this.canvas.on('object:scaling', e => {
-      if (e.target.class) {
-        vm.emit(`${e.target.class}:scaling`, e.target.parent);
-        e.target.parent.emit('scaling', e.target.parent);
-        return;
-      }
-      const group = e.target;
-      if (!group.getObjects) return;
-
-      const objects = group.getObjects();
-      group.removeWithUpdate();
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        object.orgYaw = object.parent.yaw || 0;
-        object.fire('moving', object.parent);
-        vm.emit(`${object.class}:moving`, object.parent);
-      }
-      vm.update();
-      vm.canvas.requestRenderAll();
-    });
-
-    this.canvas.on('object:rotating', e => {
-      if (e.target.class) {
-        vm.emit(`${e.target.class}:rotating`, e.target.parent, e.target.angle);
-        e.target.parent.emit('rotating', e.target.parent, e.target.angle);
-        return;
-      }
-      const group = e.target;
-      if (!group.getObjects) return;
-      const objects = group.getObjects();
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class === 'marker') {
-          object._set('angle', -group.angle);
-          object.parent.yaw = -group.angle + (object.orgYaw || 0);
-          // object.orgYaw = object.parent.yaw;
-          object.fire('moving', object.parent);
-          vm.emit(`${object.class}:moving`, object.parent);
-          object.fire('rotating', object.parent);
-          vm.emit(`${object.class}:rotating`, object.parent);
-        }
-      }
-      this.update();
-    });
-
-    this.canvas.on('object:moving', e => {
-      if (e.target.class) {
-        vm.emit(`${e.target.class}:moving`, e.target.parent);
-        e.target.parent.emit('moving', e.target.parent);
-        return;
-      }
-      const group = e.target;
-      if (!group.getObjects) return;
-      const objects = group.getObjects();
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class) {
-          object.fire('moving', object.parent);
-          vm.emit(`${object.class}:moving`, object.parent);
-        }
-      }
-      this.update();
-    });
-
-    this.canvas.on('object:moved', e => {
-      if (e.target.class) {
-        vm.emit(`${e.target.class}dragend`, e);
-        vm.emit(`${e.target.class}:moved`, e.target.parent);
-        e.target.parent.emit('moved', e.target.parent);
-        this.update();
-        return;
-      }
-      const group = e.target;
-      if (!group.getObjects) return;
-      const objects = group.getObjects();
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class) {
-          object.fire('moved', object.parent);
-          vm.emit(`${object.class}:moved`, object.parent);
-        }
-      }
-      this.update();
-    });
-
-    this.canvas.on('selection:cleared', e => {
-      const objects = e.deselected;
-      if (!objects || !objects.length) return;
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class === 'marker') {
-          object._set('angle', 0);
-          object._set('scaleX', 1 / vm.zoom);
-          object._set('scaleY', 1 / vm.zoom);
-          if (object.parent) {
-            object.parent.inGroup = false;
-          }
-          object.fire('moving', object.parent);
-        }
-      }
-    });
-    this.canvas.on('selection:created', e => {
-      const objects = e.selected;
-      if (!objects || objects.length < 2) return;
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class && object.parent) {
-          object.parent.inGroup = true;
-          object.orgYaw = object.parent.yaw || 0;
-        }
-      }
-    });
-    this.canvas.on('selection:updated', e => {
-      const objects = e.selected;
-      if (!objects || objects.length < 2) return;
-      for (let i = 0; i < objects.length; i += 1) {
-        const object = objects[i];
-        if (object.class && object.parent) {
-          object.parent.inGroup = true;
-          object.orgYaw = object.parent.yaw || 0;
-        }
-      }
-    });
-
-    this.canvas.on('mouse:down', e => {
-      vm.dragObject = e.target;
-    });
-
-    this.canvas.on('mouse:move', e => {
-      if (this.isMeasureMode()) {
-        this.measurement.onMouseMove(e);
-      }
-      if (vm.dragObject && vm.dragObject.clickable) {
-        if (vm.dragObject === e.target) {
-          vm.dragObject.dragging = true;
-        } else {
-          vm.dragObject.dragging = false;
-        }
-      }
-      this.isRight = false;
-      if ('which' in e.e) {
-        // Gecko (Firefox), WebKit (Safari/Chrome) & Opera
-        this.isRight = e.e.which === 3;
-      } else if ('button' in e.e) {
-        // IE, Opera
-        this.isRight = e.e.button === 2;
-      }
-
-      vm.emit('mouse:move', e);
-    });
-
-    this.canvas.on('mouse:up', e => {
-      if (this.isMeasureMode()) {
-        this.measurement.onClick(e);
-      }
-
-      this.isRight = false;
-      this.dx = 0;
-      this.dy = 0;
-
-      if (!vm.dragObject || !e.target || !e.target.selectable) {
-        e.target = null;
-        vm.emit('mouse:click', e);
-      }
-      if (vm.dragObject && vm.dragObject.clickable) {
-        if (vm.dragObject !== e.target) return;
-        if (!vm.dragObject.dragging && !vm.modeToggleByKey) {
-          vm.emit(`${vm.dragObject.class}:click`, vm.dragObject.parent);
-        }
-        vm.dragObject.dragging = false;
-      }
-      vm.dragObject = null;
-    });
-
-    window.addEventListener('resize', () => {
-      vm.onResize();
-    });
-
-    // document.addEventListener('keyup', () => {
-    //   if (this.modeToggleByKey && this.isGrabMode()) {
-    //     this.setModeAsSelect();
-    //     this.modeToggleByKey = false;
-    //   }
-    // });
-
-    // document.addEventListener('keydown', event => {
-    //   if (event.ctrlKey || event.metaKey) {
-    //     if (this.isSelectMode()) {
-    //       this.setModeAsGrab();
-    //     }
-    //     this.modeToggleByKey = true;
-    //   }
-    // });
-  }
-
-  unregisterListeners() {
-    this.canvas.off('object:moving');
-    this.canvas.off('object:moved');
-  }
-
-  getMarkerById(id) {
-    const objects = this.canvas.getObjects();
-    for (let i = 0; i < objects.length; i += 1) {
-      const obj = objects[i];
-      if (obj.class === 'marker' && obj.id === id) {
-        return obj.parent;
-      }
-    }
-    return null;
-  }
-
-  getMarkers() {
-    const list = [];
-    const objects = this.canvas.getObjects();
-    for (let i = 0; i < objects.length; i += 1) {
-      const obj = objects[i];
-      if (obj.class === 'marker') {
-        list.push(obj.parent);
-      }
-    }
-    return list;
-  }
+  // registerListeners() method removed - all event handling code removed
 }
 
-export const map = (container, options) => new Map(container, options);
+export const map = (container, options) => {
+  const mapInstance = new Map(container, options);
+  return mapInstance.fabric;
+};

@@ -12,7 +12,7 @@
  * toPrecision(213.34, 10) == 210
  */
 'use strict';
-import precision from './precision';
+import precision from './precision.js';
 
 export default function(value, step) {
 	if (step === 0) return value;

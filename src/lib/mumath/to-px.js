@@ -1,7 +1,7 @@
 // (c) 2015 Mikola Lysenko. MIT License
 // https://github.com/mikolalysenko/to-px
 
-import parseUnit from './parse-unit';
+import parseUnit from './parse-unit.js';
 
 var PIXELS_PER_INCH = 96
 
@@ -10,7 +10,7 @@ var defaults = {
   'ex': 7.15625,
   'em': 16,
   'rem': 16,
-  'in': PIXELS_PER_INCH,
+  'in': PIXELS_PER_INCH,  
   'cm': PIXELS_PER_INCH / 2.54,
   'mm': PIXELS_PER_INCH / 25.4,
   'pt': PIXELS_PER_INCH / 72,
