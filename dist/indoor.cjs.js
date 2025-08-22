@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Clamp value.
  * Detects proper clamp min/max.
@@ -1160,4 +1162,5 @@ class Map extends Base {
 
 const map = (container, options) => new Map(container, options);
 
-export { Map, map };
+exports.Map = Map;
+exports.map = map;

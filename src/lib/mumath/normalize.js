@@ -5,7 +5,7 @@
  */
 'use strict';
 
-import { FLT_EPSILON } from './almost';
+import { FLT_EPSILON } from './almost.js';
 
 export default function(value, eps) {
 	//ignore ints
