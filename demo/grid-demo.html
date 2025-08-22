@@ -50,166 +50,52 @@
     <!-- Direct module imports -->
     <script type="module">
       import Grid from '../src/grid/Grid.js';
-      import { Map } from '../src/map/Map.js';
+      import { Schematic } from '../src/core/Schematic.js';
 
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
         
-        // Initialize map with grid enabled
-        const mapFabric = new Map(container, {
+        // Initialize schematic with grid enabled
+        const schematic = new Schematic(container, {
           width: 800,
           height: 600,
-          showGrid: true // This will trigger map.addGrid() internally
+          showGrid: true, // Grid will be enabled by default
+          zoomDebounceDelay: 200 // Configure the zoom debounce delay
         });
         
-        // Variables to track right-click panning
+        // Get the fabric instance from the schematic
+        const fabricCanvas = schematic.fabric;
+        // Access the global fabric object from Fabric.js loaded via CDN
+        const fabric = window.fabric;
+        // Get the map instance from the schematic
+        const mapFabric = schematic.mapInstance;
+        
+        // Variables for tracking pan/zoom state
         let isPanning = false;
         let lastPosX = 0;
         let lastPosY = 0;
         
-        // Prevent context menu on right-click
-        container.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          return false;
-        }, false);
-        
-        // Set up Fabric.js events for panning
-        mapFabric.fabric.on({
-          'mouse:down': function(opt) {
-            // Detect right-click (button === 2)
-            if (opt.e.button === 2) {
-              isPanning = true;
-              container.style.cursor = 'grab';
-              
-              // Store the initial pointer position
-              const pointer = mapFabric.fabric.getPointer(opt.e);
-              lastPosX = pointer.x;
-              lastPosY = pointer.y;
-              
-              // Prevent any default behavior
-              opt.e.preventDefault();
-              opt.e.stopPropagation();
-            }
-          },
-          
-          'mouse:move': function(opt) {
-            if (isPanning) {
-              // Get current pointer position
-              const pointer = mapFabric.fabric.getPointer(opt.e);
-              
-              // Calculate the movement delta
-              const deltaX = pointer.x - lastPosX;
-              const deltaY = pointer.y - lastPosY;
-              
-              // If there is significant movement, pan the canvas
-              if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                // Apply panning directly with Fabric's relativePan
-                mapFabric.fabric.relativePan(new fabric.Point(deltaX, deltaY));
-                
-                // Update the last position
-                lastPosX = pointer.x;
-                lastPosY = pointer.y;
-              }
-              
-              // Prevent default behavior
-              opt.e.preventDefault();
-              opt.e.stopPropagation();
-            }
-          },
-          
-          'mouse:up': function() {
-            // End panning on mouse up
-            isPanning = false;
-            container.style.cursor = 'default';
-          },
-          
-          'selection:created': function(opt) {
-            // Disable selection during panning
-            if (isPanning) {
-              mapFabric.fabric.discardActiveObject();
-              mapFabric.fabric.requestRenderAll();
-            }
-          }
+        // Listen for zoom events from Schematic
+        schematic.on('zoom:change', (data) => {
+          updateUIDisplay();
         });
         
-        // Variable to hold the zoom timeout ID
-        let zoomDebounceTimeout = null;
-        const ZOOM_DEBOUNCE_DELAY = 200; // ms
-        
-        // Use Fabric's mouse:wheel event for zooming
-        mapFabric.fabric.on('mouse:wheel', (opt) => {
-          // Prevent default scrolling behavior
-          opt.e.preventDefault();
-          opt.e.stopPropagation();
-          
-          // Calculate zoom change based on wheel delta
-          // Use percentage-based zoom (5% per wheel tick)
-          const zoomFactor = 1.05;
-          const direction = opt.e.deltaY < 0 ? 1 : -1;
-          const newZoom = direction > 0 
-            ? mapFabric.zoom * zoomFactor 
-            : mapFabric.zoom / zoomFactor;
-            
-          // Ensure zoom stays within bounds
-          const constrainedZoom = Math.max(
-            mapFabric.minZoom, 
-            Math.min(mapFabric.maxZoom, newZoom)
-          );
-          
-          // Set new zoom level
-          mapFabric.zoom = constrainedZoom;
-          
-          // DO NOT WRITE ANY CODE CALLING zoomToPoint
-          // const point = new fabric.Point(pointer.x, pointer.y);
-          // mapFabric.fabric.zoomToPoint(point, mapFabric.zoom);
-          // DO NOT WRITE ANY CODE CALLING zoomToPoint
-          
-          // Update the map with new zoom level
-          mapFabric.update();
-          
-          // Update UI display
-          updateUIDisplay();
-          
-          // Clear any existing timeout to reset debounce timer
-          if (zoomDebounceTimeout) {
-            clearTimeout(zoomDebounceTimeout);
-          }
-          
-          // Set a timeout for final update after zooming stops
-          zoomDebounceTimeout = setTimeout(() => {
-            console.log('Zoom completed - performing final grid alignment');
-            
-            // Ensure grid is properly aligned after zoom completed
-            if (mapFabric.grid) {
-              mapFabric.grid.update();
-              mapFabric.grid.render();
-            }
-            
-            // Force a complete redraw to ensure everything is rendered properly
-            mapFabric.fabric.requestRenderAll();
-            
-            // Fire an event that zooming has completed
-            mapFabric.fabric.fire('zoom:completed', { zoom: mapFabric.zoom });
-          }, ZOOM_DEBOUNCE_DELAY);
+        schematic.on('zoom:completed', (data) => {
+          console.log('Zoom completed - final grid alignment done');
         });
 
-        // Initialize controls with explicit update() calls
+        // Initialize controls with Schematic methods
         document.getElementById('resetView')?.addEventListener('click', () => {
-          // Reset view using available reset() method
-          if (mapFabric.reset) {
-            mapFabric.reset();
-            mapFabric.update(); // Mandatory update call after changes
-          }
+          // Reset view using Schematic's resetView method
+          schematic.resetView();
         });
 
         // Get pin settings from UI
         // Pin select and margin are no longer used since setOriginPin and setPinMargin methods don't exist
         // Keeping the UI elements for visual consistency but not adding functionality
         
-        // Set initial parameters
-        mapFabric.center = { x: 0, y: 0 };
-        mapFabric.setZoom(1.0);
-        mapFabric.update(); // Mandatory update call
+        // Set initial parameters using Schematic methods
+        schematic.setZoom(1.0);
 
         const minZoom = document.getElementById('minZoomInput');
         const maxZoom = document.getElementById('maxZoomInput');
@@ -217,14 +103,12 @@
           const min = Math.max(0.01, Number(minZoom.value) || 0.01);
           const max = Math.max(min + 0.01, Number(maxZoom.value) || 20);
           
-          // Update zoom according to input values - directly setting properties
-          // Map.js has minZoom and maxZoom properties that we can set
-          mapFabric.minZoom = min;
-          mapFabric.maxZoom = max;
+          // Update zoom limits using Schematic's method
+          schematic.setZoomLimits(min, max);
           
-          // Use the documented setZoom method
-          mapFabric.setZoom(Math.max(min, Math.min(max, mapFabric.zoom || 1.0)));
-          mapFabric.update(); // Mandatory update call
+          // Set current zoom to ensure it's within limits
+          const currentZoom = mapFabric.zoom || 1.0;
+          schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
         };
         
         // Add event listeners for zoom controls
@@ -234,23 +118,39 @@
         // Initial zoom setup
         updateZoom();
 
-        // Add sample content to demonstrate the library using direct object API
+        // Add sample content to demonstrate the library using Schematic's API
         const circle = new fabric.Circle({
           left: 0,
           top: 0,
           radius: 50,
           fill: '#f8f8f8',
           stroke: '#999',
-          strokeWidth: 1
+          strokeWidth: 1,
+          selectable: true,
+          originX: 'center',
+          originY: 'center'
         });
         
-        // Add the object directly to the map
-        mapFabric.addObject(circle);
+        // Add the object through Schematic
+        schematic.addObject(circle);
         
-        // Mandatory update call to render changes
-        mapFabric.update();
+        // Add another object to verify objects are being added correctly
+        const rect = new fabric.Rect({
+          left: 100,
+          top: 100,
+          width: 80,
+          height: 60,
+          fill: '#ddf',
+          stroke: '#99c',
+          strokeWidth: 2,
+          selectable: true,
+          originX: 'center',
+          originY: 'center'
+        });
         
-        // Custom display update function without using events
+        schematic.addObject(rect);
+        
+        // Custom display update function that works with Schematic
         function updateUIDisplay() {
           // Update zoom level display
           if (document.getElementById('zoomLevel')) {
@@ -264,6 +164,12 @@
             document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
           }
         }
+        
+        // Also listen for grid control changes
+        schematic.on('grid:change', () => {
+          console.log('Grid settings changed');
+          updateUIDisplay();
+        });
         
         // Call the update manually once
         updateUIDisplay();

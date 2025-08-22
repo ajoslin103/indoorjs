@@ -33,6 +33,15 @@ export class Schematic extends Base {
     
     // Create a grid control instance
     this.gridControl = new GridControl(options && options.grid);
+    
+    // Initialize zoom debounce properties
+    this.zoomDebounceTimeout = null;
+    this.zoomDebounceDelay = options?.zoomDebounceDelay || 200; // ms
+    
+    // Register event listeners if interactions are enabled
+    if (options?.interactions !== false) {
+      this.registerEventListeners();
+    }
   }
 
   /**
@@ -192,6 +201,159 @@ export class Schematic extends Base {
    */
   getGridControl() {
     return this.gridControl;
+  }
+  
+  /**
+   * Register event listeners for map interactions
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  registerEventListeners() {
+    // Only register if we have a map instance
+    if (!this.fabric || !this.mapInstance) return this;
+    
+    // Register mouse wheel event for zooming
+    this.fabric.on('mouse:wheel', this.handleMouseWheel.bind(this));
+    
+    // Prevent context menu on right-click for panning
+    if (this.container) {
+      this.container.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+      }, false);
+    }
+    
+    return this;
+  }
+  
+  /**
+   * Handle mouse wheel events for zooming
+   * @param {Object} opt - Event options from Fabric.js
+   * @private
+   */
+  handleMouseWheel(opt) {
+    if (!this.mapInstance) return;
+    
+    // Prevent default scrolling behavior
+    opt.e.preventDefault();
+    opt.e.stopPropagation();
+    
+    // Calculate zoom change based on wheel delta
+    const zoomFactor = 1.05;
+    const direction = opt.e.deltaY < 0 ? 1 : -1;
+    const newZoom = direction > 0
+      ? this.mapInstance.zoom * zoomFactor
+      : this.mapInstance.zoom / zoomFactor;
+    
+    // Ensure zoom stays within bounds
+    const constrainedZoom = Math.max(
+      this.mapInstance.minZoom,
+      Math.min(this.mapInstance.maxZoom, newZoom)
+    );
+    
+    // Set new zoom level
+    this.mapInstance.zoom = constrainedZoom;
+    
+    // Update the map with new zoom level
+    this.mapInstance.update();
+    
+    // Emit zoom change event
+    this.emit('zoom:change', { zoom: constrainedZoom });
+    
+    // Clear any existing timeout to reset debounce timer
+    if (this.zoomDebounceTimeout) {
+      clearTimeout(this.zoomDebounceTimeout);
+    }
+    
+    // Set a timeout for final update after zooming stops
+    this.zoomDebounceTimeout = setTimeout(() => {
+      // Ensure grid is properly aligned after zoom completed
+      if (this.mapInstance.grid) {
+        this.mapInstance.grid.update();
+        this.mapInstance.grid.render();
+      }
+      
+      // Force a complete redraw to ensure everything is rendered properly
+      this.fabric.requestRenderAll();
+      
+      // Fire an event that zooming has completed
+      this.emit('zoom:completed', { zoom: this.mapInstance.zoom });
+    }, this.zoomDebounceDelay);
+  }
+  
+  /**
+   * Set the map's zoom level
+   * @param {number} zoom - Zoom level to set
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setZoom(zoom) {
+    if (this.mapInstance) {
+      this.mapInstance.setZoom(zoom);
+      this.emit('zoom:change', { zoom: this.mapInstance.zoom });
+    }
+    return this;
+  }
+  
+  /**
+   * Set minimum and maximum zoom levels
+   * @param {number} min - Minimum zoom level
+   * @param {number} max - Maximum zoom level
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setZoomLimits(min, max) {
+    if (this.mapInstance) {
+      // Ensure valid values
+      const minZoom = Math.max(0.01, min || 0.01);
+      const maxZoom = Math.max(minZoom + 0.01, max || 20);
+      
+      this.mapInstance.minZoom = minZoom;
+      this.mapInstance.maxZoom = maxZoom;
+      
+      // Constrain current zoom if needed
+      const currentZoom = this.mapInstance.zoom;
+      if (currentZoom < minZoom || currentZoom > maxZoom) {
+        this.setZoom(Math.max(minZoom, Math.min(maxZoom, currentZoom)));
+      }
+      
+      this.mapInstance.update();
+    }
+    return this;
+  }
+  
+  /**
+   * Reset the view to initial state
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  resetView() {
+    if (this.mapInstance && this.mapInstance.reset) {
+      this.mapInstance.reset();
+      this.mapInstance.update();
+      this.emit('view:reset');
+    }
+    return this;
+  }
+  
+  /**
+   * Add an object to the map
+   * @param {Object} object - Fabric.js object to add
+   * @return {Object} - The added object
+   */
+  addObject(object) {
+    if (this.mapInstance) {
+      return this.mapInstance.addObject(object);
+    }
+    return null;
+  }
+  
+  /**
+   * Remove an object from the map
+   * @param {Object} object - Fabric.js object to remove
+   * @return {Object} - The removed object
+   */
+  removeObject(object) {
+    if (this.mapInstance) {
+      return this.mapInstance.removeObject(object);
+    }
+    return null;
   }
 }
 
