@@ -57,25 +57,6 @@ export class Map extends Base {
 
   }
 
-  addObject(object) {
-    // this.canvas.renderOnAddRemove = false;
-    if (!object) {
-      console.error('object is undefined');
-      return;
-    }
-    this.fabric.add(object);
-    this.fabric._objects.sort((o1, o2) => o1.zIndex - o2.zIndex);
-
-    this.fabric.requestRenderAll();
-    return object;
-  }
-
-  removeObject(object) {
-    if (!object) return;
-    this.fabric.remove(object);
-    return object;
-  }
-
   addGrid(gridControl) {
     // Create grid using the fabric canvas context
     this.grid = new Grid(this.context, this);
@@ -167,24 +148,40 @@ export class Map extends Base {
 
   update() {
     const canvas = this.fabric;
-
-    if (this.grid) {
-      // Set grid coordinates to match Fabric.js coordinate system
-      // The grid center should align with Fabric's (0,0) point
-      this.grid.update2({
-        x: 0, // Use 0 to align with the Fabric.js origin
-        y: 0, // Use 0 to align with the Fabric.js origin
-        zoom: this.zoom
-      });
-    }
-    // Event emission removed per non-reactive conversion
-    if (this.grid) {
-      this.grid.render();
-    }
-
-    // Always zoom to the canvas center instead of a specific point
+    
+    // First apply the zoom to the center of the canvas
     const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
     canvas.zoomToPoint(centerPoint, this.zoom);
+    
+    // Then update the grid based on the new viewport transform
+    if (this.grid) {
+      // Get current viewport transform to calculate world coordinates
+      const vpt = canvas.viewportTransform;
+      
+      if (vpt) {
+        // Calculate the center point based on viewport transform
+        // This converts from screen space to world space coordinates
+        const centerX = -vpt[4] / vpt[0];
+        const centerY = -vpt[5] / vpt[3];
+        
+        // Update the grid with the calculated world coordinates
+        this.grid.update2({
+          x: centerX,
+          y: centerY,
+          zoom: this.zoom
+        });
+      } else {
+        // Fallback if no viewport transform is available
+        this.grid.update2({
+          x: 0,
+          y: 0,
+          zoom: this.zoom
+        });
+      }
+      
+      // Render the grid with the updated position
+      this.grid.render();
+    }
 
     const now = Date.now();
     if (!this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {

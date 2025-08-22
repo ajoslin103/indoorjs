@@ -22,11 +22,9 @@ export class GridControl extends Base {
       axisColor: 'rgba(0, 0, 0, 0.8)',   // color for main axes
       axisWidth: 2,                      // width of main axes
       
-      // Grid parameters
-      spacing: 50,            // spacing between grid lines in pixels
+      // Grid thresholds
       minSpacing: 20,         // minimum spacing (for auto-adjustment)
       maxSpacing: 200,        // maximum spacing (for auto-adjustment)
-      autoAdjustDensity: true,// automatically adjust grid density based on zoom
       
       // Style options
       fontSize: '11pt',       // font size for labels
@@ -70,15 +68,6 @@ export class GridControl extends Base {
     return this;
   }
 
-  /**
-   * Sets the grid spacing
-   * @param {number} spacing - Spacing between grid lines in pixels
-   * @return {GridControl} - This instance for chaining
-   */
-  setSpacing(spacing) {
-    this.spacing = Math.max(this.minSpacing, Math.min(spacing, this.maxSpacing));
-    return this;
-  }
 
   /**
    * Apply this grid control's settings to a grid instance
