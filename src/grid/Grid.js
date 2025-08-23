@@ -24,7 +24,7 @@ class Grid extends Base {
     this.context = context;
     this.state = {};
     this.setDefaults();
-    this.update(opts);
+    this.updateConfiguration(opts);
   }
 
   render() {
@@ -39,21 +39,21 @@ class Grid extends Base {
   setSize(width, height) {
     this.width = width;
     this.height = height;
-    this.update();
+    this.updateConfiguration();
   }
 
   setWidth(width) {
     this.width = width;
-    this.update();
+    this.updateConfiguration();
   }
 
   setHeight(height) {
     this.height = height;
-    this.update();
+    this.updateConfiguration();
   }
 
-  // re-evaluate lines, calc options for renderer
-  update(opts) {
+  // re-evaluate lines, calc options for renderer based on configuration
+  updateConfiguration(opts) {
     if (!opts) opts = {};
     const shape = [this.width, this.height];
 
@@ -66,8 +66,8 @@ class Grid extends Base {
     return this;
   }
 
-  // re-evaluate lines, calc options for renderer
-  update2(center) {
+  // re-evaluate lines, calc options for renderer based on viewport position
+  updateViewport(center) {
     const shape = [this.width, this.height];
     Object.assign(this.center, center);
     // recalc state
@@ -200,81 +200,6 @@ class Grid extends Base {
     Object.assign(this, this._options);
 
     this.center = new Point(this.center);
-  }
-  
-  /**
-   * Draw grid to the canvas using the provided control
-   * This method is called by the Map's 'before:render' event
-   * @param {GridControl} control - The control object that defines how grid is drawn
-   * @return {Grid} This instance for chaining
-   */
-  drawWithControl(control) {
-    if (!control || !control.enabled) {
-      return this;
-    }
-    
-    // Store original state to restore after drawing
-    const originalState = {
-      width: this.width,
-      height: this.height,
-      center: new Point(this.center)
-    };
-    
-    // Apply control settings temporarily for drawing
-    this.width = control.width;
-    this.height = control.height;
-    
-    // Update grid position and zoom based on control
-    if (control.center) {
-      this.axisX.offset = control.center.x;
-      this.axisX.zoom = 1 / control.center.zoom;
-      
-      this.axisY.offset = control.center.y;
-      this.axisY.zoom = 1 / control.center.zoom;
-      
-      this.center.x = control.center.x;
-      this.center.y = control.center.y;
-    }
-    
-    // Apply visibility settings
-    this.axisX.axis = control.showAxisX;
-    this.axisY.axis = control.showAxisY;
-    
-    // Apply style settings
-    this.axisX.lineColor = control.lineColor;
-    this.axisY.lineColor = control.lineColor;
-    this.axisX.lineWidth = control.lineWidth;
-    this.axisY.lineWidth = control.lineWidth;
-    this.axisX.axisColor = control.axisColor;
-    this.axisY.axisColor = control.axisColor;
-    this.axisX.axisWidth = control.axisWidth;
-    this.axisY.axisWidth = control.axisWidth;
-    
-    // Apply font settings
-    this.axisX.fontSize = control.fontSize;
-    this.axisY.fontSize = control.fontSize;
-    this.axisX.fontFamily = control.fontFamily;
-    this.axisY.fontFamily = control.fontFamily;
-    
-    // Apply label settings
-    this.axisX.labels = control.showLabels;
-    this.axisY.labels = control.showLabels;
-    
-    // Update grid state with temporary settings
-    this.update();
-    
-    // Draw grid with applied settings
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.drawLines(this.state.x);
-    this.drawLines(this.state.y);
-    
-    // Restore original state after drawing
-    this.width = originalState.width;
-    this.height = originalState.height;
-    this.center = originalState.center;
-    this.update();
-    
-    return this;
   }
 
   /**
