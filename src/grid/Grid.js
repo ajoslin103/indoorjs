@@ -289,11 +289,10 @@ class Grid extends Base {
   }
 
   // lines instance draw
-  drawLines(state) {
+  drawLines(state, ctx) {
     // draw lines and sublines
     if (!state || !state.coordinate) return;
 
-    const ctx = this.context;
     const [width, height] = state.shape;
     const left = 0;
     const top = 0;
@@ -357,12 +356,11 @@ class Grid extends Base {
       ctx.closePath();
     }
     // draw state.labels
-    this.drawLabels(state);
+    this.drawLabels(state, ctx);
   }
 
-  drawLabels(state) {
+  drawLabels(state, ctx = this.context) {
     if (state.labels) {
-      const ctx = this.context;
       const [width, height] = state.shape;
       const [pt, pr, pb, pl] = state.padding;
       const dimensions = { width, height, padding: [pt, pr, pb, pl] };
