@@ -7,7 +7,11 @@ import gridStyle from './gridStyle.js';
 import Axis from './Axis.js';
 import { Point } from '../geometry/Point.js';
 
-// constructor
+/**
+ * The Grid component uses the canvas element's 2D drawing context
+ * to paint gridlines, axis, and labels. It displays a visible
+ * coordinate reference without affecting Fabric.js objects.
+ */
 class Grid extends Base {
   constructor(context, opts) {
     super(opts);
@@ -313,11 +317,89 @@ class Grid extends Base {
     this.center = new Point(this.center);
   }
 
-  // draw grid to the canvas
+  /**
+   * Draw grid to the canvas using its current state
+   * @return {Grid} This instance for chaining
+   */
   draw() {
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x);
     this.drawLines(this.state.y);
+    return this;
+  }
+  
+  /**
+   * Draw grid to the canvas using the provided control
+   * This method is called by the Map's 'before:render' event
+   * @param {GridControl} control - The control object that defines how grid is drawn
+   * @return {Grid} This instance for chaining
+   */
+  drawWithControl(control) {
+    if (!control || !control.enabled) {
+      return this;
+    }
+    
+    // Store original state to restore after drawing
+    const originalState = {
+      width: this.width,
+      height: this.height,
+      center: new Point(this.center)
+    };
+    
+    // Apply control settings temporarily for drawing
+    this.width = control.width;
+    this.height = control.height;
+    
+    // Update grid position and zoom based on control
+    if (control.center) {
+      this.axisX.offset = control.center.x;
+      this.axisX.zoom = 1 / control.center.zoom;
+      
+      this.axisY.offset = control.center.y;
+      this.axisY.zoom = 1 / control.center.zoom;
+      
+      this.center.x = control.center.x;
+      this.center.y = control.center.y;
+    }
+    
+    // Apply visibility settings
+    this.axisX.axis = control.showAxisX;
+    this.axisY.axis = control.showAxisY;
+    
+    // Apply style settings
+    this.axisX.lineColor = control.lineColor;
+    this.axisY.lineColor = control.lineColor;
+    this.axisX.lineWidth = control.lineWidth;
+    this.axisY.lineWidth = control.lineWidth;
+    this.axisX.axisColor = control.axisColor;
+    this.axisY.axisColor = control.axisColor;
+    this.axisX.axisWidth = control.axisWidth;
+    this.axisY.axisWidth = control.axisWidth;
+    
+    // Apply font settings
+    this.axisX.fontSize = control.fontSize;
+    this.axisY.fontSize = control.fontSize;
+    this.axisX.fontFamily = control.fontFamily;
+    this.axisY.fontFamily = control.fontFamily;
+    
+    // Apply label settings
+    this.axisX.labels = control.showLabels;
+    this.axisY.labels = control.showLabels;
+    
+    // Update grid state with temporary settings
+    this.update();
+    
+    // Draw grid with applied settings
+    this.context.clearRect(0, 0, this.width, this.height);
+    this.drawLines(this.state.x);
+    this.drawLines(this.state.y);
+    
+    // Restore original state after drawing
+    this.width = originalState.width;
+    this.height = originalState.height;
+    this.center = originalState.center;
+    this.update();
+    
     return this;
   }
 
