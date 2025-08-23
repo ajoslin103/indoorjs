@@ -30,6 +30,8 @@ export function calcCoordinate(coord, shape) {
   );
 
   state.zoom = coord.zoom;
+  // ensure base color is available for styles
+  state.color = coord.color || 'rgba(0,0,0,1)';
   
   // calc style
   state.axisColor = typeof coord.axisColor === 'number'
@@ -41,13 +43,16 @@ export function calcCoordinate(coord, shape) {
   state.tickAlign = coord.tickAlign;
   state.labelColor = state.color;
   
-  // get padding
+  // get padding (robust: always resolve to [pt, pr, pb, pl])
   if (typeof coord.padding === 'number') {
     state.padding = Array(4).fill(coord.padding);
   } else if (coord.padding instanceof Function) {
     state.padding = coord.padding(state);
-  } else {
+  } else if (Array.isArray(coord.padding)) {
     state.padding = coord.padding;
+  } else {
+    // fallback when padding is undefined/null/invalid
+    state.padding = [0, 0, 0, 0];
   }
   
   // calc font

@@ -64,6 +64,8 @@ export class Map extends Base {
     // Set grid dimensions to match fabric canvas
     this.grid.width = this.fabric.width;
     this.grid.height = this.fabric.height;
+    // Initialize grid state with correct dimensions
+    this.grid.updateConfiguration();
     
     // Initialize grid center coordinates to match Fabric.js center
     this.grid.center.x = 0; // Center should be 0 to align with fabric's center
