@@ -15,17 +15,11 @@ A Map is the main entry point for the library.
 
 It is responsible for creating and managing the [Fabric.js](https://fabricjs.com/) canvas element 
 
-It maintains a GridControl object with which it controls the grid's appearance
+It listens to Fabric.js canvas events, in particular the pan, zoom, and resize events, and updates the Grid object based on those events.  
 
-It listens to Fabric.js canvas events, in particular the pan, zoom, and resize events, and updates the GridControl object based on those events.  
-
-It listens to Fabric.js canvas events, in particular the 'before:render' event, and calls the Grid's 'drawWithControl' method with the GridControl object.
+It listens to Fabric.js canvas events, in particular the 'before:render' event, and calls the Grid's 'render' method with the .
 
 It exposes the GridControl object to the Application, which can use it to control the grid's appearance and behavior.
-
-### The GridControl
-
-The GridControl is a class that describes the grid's visibility and appearance. It is always supplied when a Grid is to be drawn.  It is used to control where and how the grid is drawn on the Map.
 
 ### The Grid
 
