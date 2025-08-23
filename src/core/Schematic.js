@@ -1,6 +1,5 @@
 import Base from './Base.js';
 import { Map } from '../map/Map.js';
-import GridControl from '../grid/GridControl.js';
 
 /**
  * Schematic class for handling event subscriptions and emissions
@@ -30,9 +29,6 @@ export class Schematic extends Base {
     const mapInstance = new Map(this.container, options);
     this.fabric = mapInstance.fabric;
     this.mapInstance = mapInstance; // Store reference to map instance
-    
-    // Create a grid control instance
-    this.gridControl = new GridControl(options && options.grid);
     
     // Initialize zoom debounce properties
     this.zoomDebounceTimeout = null;
@@ -148,32 +144,9 @@ export class Schematic extends Base {
   }
 
   /**
-   * Update grid control settings
-   * @param {Object} gridOptions - Grid options to update
-   * @return {Schematic} - Returns this Schematic instance for chaining
+   * Toggle grid visibility by adding/removing the map's grid
+   * Grid manages its own state; only width/height/center/zoom are needed
    */
-  updateGridControl(gridOptions) {
-    this.gridControl.update(gridOptions);
-    
-    // If the map has a grid, apply the settings immediately
-    if (this.mapInstance && this.mapInstance.grid) {
-      this.applyGridControl();
-    }
-    
-    return this;
-  }
-
-  /**
-   * Apply the current grid control settings to the map's grid
-   * @return {Schematic} - Returns this Schematic instance for chaining
-   */
-  applyGridControl() {
-    if (this.mapInstance && this.mapInstance.grid) {
-      this.gridControl.applyToGrid(this.mapInstance.grid);
-      this.mapInstance.grid.render();
-    }
-    return this;
-  }
 
   /**
    * Show or hide the grid
@@ -181,26 +154,22 @@ export class Schematic extends Base {
    * @return {Schematic} - Returns this Schematic instance for chaining
    */
   showGrid(visible) {
-    this.gridControl.setVisible(visible);
-    
-    // If true and grid doesn't exist yet, create it
+    // Add grid when turning on
     if (visible && this.mapInstance && !this.mapInstance.grid) {
       this.mapInstance.addGrid();
-      this.applyGridControl();
-    } else if (this.mapInstance && this.mapInstance.grid) {
-      // If the grid exists, just apply the visibility setting
-      this.applyGridControl();
+      // Ensure grid starts with correct viewport
+      this.mapInstance.update();
     }
-    
-    return this;
-  }
+    // Remove grid when turning off
+    if (!visible && this.mapInstance && this.mapInstance.grid) {
+      this.mapInstance.grid = null;
+      // Trigger a render so the cleared background shows
+      if (this.fabric && typeof this.fabric.requestRenderAll === 'function') {
+        this.fabric.requestRenderAll();
+      }
+    }
 
-  /**
-   * Get the current grid control instance
-   * @return {GridControl} - The grid control instance
-   */
-  getGridControl() {
-    return this.gridControl;
+    return this;
   }
   
   /**
