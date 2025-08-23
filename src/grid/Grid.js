@@ -1,11 +1,17 @@
-import alpha from '../lib/color-alpha.js';
 import Base from '../core/Base.js';
-import {
-  clamp, almost, len, parseUnit, toPx, isObj
-} from '../lib/mumath/index.js';
+import { clamp, almost } from '../lib/mumath/index.js';
 import gridStyle from './gridStyle.js';
 import Axis from './Axis.js';
 import { Point } from '../geometry/Point.js';
+import { 
+  calcCoordinate, 
+  getCenterCoords, 
+  calculateTicksAndLabels, 
+  calculateLineCoordinates,
+  calculateAxisCoordinates,
+  calculateLabelPosition,
+  calculateTickPoints
+} from './grid-calcs.js';
 
 /**
  * The Grid component uses the canvas element's 2D drawing context
@@ -27,20 +33,7 @@ class Grid extends Base {
   }
 
   getCenterCoords() {
-    let state = this.state.x;
-    let [width, height] = state.shape;
-    let [pt, pr, pb, pl] = state.padding;
-    let axisCoords = state.opposite.coordinate.getCoords(
-      [state.coordinate.axisOrigin],
-      state.opposite
-    );
-    const y = pt + axisCoords[1] * (height - pt - pb);
-    state = this.state.y;
-    [width, height] = state.shape;
-    [pt, pr, pb, pl] = state.padding;
-    axisCoords = state.opposite.coordinate.getCoords([state.coordinate.axisOrigin], state.opposite);
-    const x = pl + axisCoords[0] * (width - pr - pl);
-    return { x, y };
+    return getCenterCoords(this.state.x, this.state.y);
   }
 
   setSize(width, height) {
@@ -93,116 +86,8 @@ class Grid extends Base {
 
   // get state object with calculated params, ready for rendering
   calcCoordinate(coord, shape) {
-    const state = {
-      coordinate: coord,
-      shape,
-      grid: this
-    };
-    // calculate real offset/range
-    state.range = coord.getRange(state);
-    state.offset = clamp(
-      coord.offset - state.range * clamp(0.5, 0, 1),
-      Math.max(coord.min, -Number.MAX_VALUE + 1),
-      Math.min(coord.max, Number.MAX_VALUE) - state.range
-    );
-
-    state.zoom = coord.zoom;
-    // calc style
-    state.axisColor = typeof coord.axisColor === 'number'
-      ? alpha(coord.color, coord.axisColor)
-      : coord.axisColor || coord.color;
-
-    state.axisWidth = coord.axisWidth || coord.lineWidth;
-    state.lineWidth = coord.lineWidth;
-    state.tickAlign = coord.tickAlign;
-    state.labelColor = state.color;
-    // get padding
-    if (typeof coord.padding === 'number') {
-      state.padding = Array(4).fill(coord.padding);
-    } else if (coord.padding instanceof Function) {
-      state.padding = coord.padding(state);
-    } else {
-      state.padding = coord.padding;
-    }
-    // calc font
-    if (typeof coord.fontSize === 'number') {
-      state.fontSize = coord.fontSize;
-    } else {
-      const units = parseUnit(coord.fontSize);
-      state.fontSize = units[0] * toPx(units[1]);
-    }
-    state.fontFamily = coord.fontFamily || 'sans-serif';
-    // get lines stops, including joined list of values
-    let lines;
-    if (coord.lines instanceof Function) {
-      lines = coord.lines(state);
-    } else {
-      lines = coord.lines || [];
-    }
-    state.lines = lines;
-    // calc colors
-    if (coord.lineColor instanceof Function) {
-      state.lineColors = coord.lineColor(state);
-    } else if (Array.isArray(coord.lineColor)) {
-      state.lineColors = coord.lineColor;
-    } else {
-      let color = alpha(coord.color, coord.lineColor);
-      if (typeof coord.lineColor !== 'number') {
-        color = coord.lineColor === false || coord.lineColor == null ? null : coord.color;
-      }
-      state.lineColors = Array(lines.length).fill(color);
-    }
-    // calc ticks
-    let ticks;
-    if (coord.ticks instanceof Function) {
-      ticks = coord.ticks(state);
-    } else if (Array.isArray(coord.ticks)) {
-      ticks = coord.ticks;
-    } else {
-      const tick = coord.ticks === true || coord.ticks === true
-        ? state.axisWidth * 2 : coord.ticks || 0;
-      ticks = Array(lines.length).fill(tick);
-    }
-    state.ticks = ticks;
-    // calc labels
-    let labels;
-    if (coord.labels === true) labels = state.lines;
-    else if (coord.labels instanceof Function) {
-      labels = coord.labels(state);
-    } else if (Array.isArray(coord.labels)) {
-      labels = coord.labels;
-    } else if (isObj(coord.labels)) {
-      labels = coord.labels;
-    } else {
-      labels = Array(state.lines.length).fill(null);
-    }
-    state.labels = labels;
-    // convert hashmap ticks/labels to lines + colors
-    if (isObj(ticks)) {
-      state.ticks = Array(lines.length).fill(0);
-    }
-    if (isObj(labels)) {
-      state.labels = Array(lines.length).fill(null);
-    }
-    if (isObj(ticks)) {
-      // eslint-disable-next-line guard-for-in
-      Object.keys(ticks).forEach((value, tick) => {
-        state.ticks.push(tick);
-        state.lines.push(parseFloat(value));
-        state.lineColors.push(null);
-        state.labels.push(null);
-      });
-    }
-
-    if (isObj(labels)) {
-      Object.keys(labels).forEach((label, value) => {
-        state.labels.push(label);
-        state.lines.push(parseFloat(value));
-        state.lineColors.push(null);
-        state.ticks.push(null);
-      });
-    }
-
+    const state = calcCoordinate(coord, shape);
+    state.grid = this;
     return state;
   }
 
@@ -413,70 +298,44 @@ class Grid extends Base {
     const left = 0;
     const top = 0;
     const [pt, pr, pb, pl] = state.padding;
+    const dimensions = { width, height, left, top, padding: [pt, pr, pb, pl] };
 
     let axisRatio = state.opposite.coordinate.getRatio(state.coordinate.axisOrigin, state.opposite);
     axisRatio = clamp(axisRatio, 0, 1);
     const coords = state.coordinate.getCoords(state.lines, state);
-    // draw state.lines
+    
+    // Get line coordinates from the utility function
+    const lineCoords = calculateLineCoordinates(state, coords, dimensions);
+    
+    // Draw the lines
     ctx.lineWidth = 1; // state.lineWidth/2.;
-    for (let i = 0, j = 0; i < coords.length; i += 4, j += 1) {
+    for (let i = 0, j = 0; i < lineCoords.length; i++, j += 1) {
       const color = state.lineColors[j];
       if (!color) continue;
+      
+      const { x1, y1, x2, y2 } = lineCoords[i];
       ctx.strokeStyle = color;
       ctx.beginPath();
-      const x1 = left + pl + coords[i] * (width - pr - pl);
-      const y1 = top + pt + coords[i + 1] * (height - pb - pt);
-      const x2 = left + pl + coords[i + 2] * (width - pr - pl);
-      const y2 = top + pt + coords[i + 3] * (height - pb - pt);
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
       ctx.closePath();
     }
-    const normals = [];
-    for (let i = 0; i < coords.length; i += 4) {
-      const x1 = coords[i];
-      const y1 = coords[i + 1];
-      const x2 = coords[i + 2];
-      const y2 = coords[i + 3];
-      const xDif = x2 - x1;
-      const yDif = y2 - y1;
-      const dist = len(xDif, yDif);
-      normals.push(xDif / dist);
-      normals.push(yDif / dist);
-    }
-    // calc state.labels/tick coords
-    const tickCoords = [];
-    state.labelCoords = [];
-    const ticks = state.ticks;
-    for (let i = 0, j = 0, k = 0; i < normals.length; k += 1, i += 2, j += 4) {
-      const x1 = coords[j];
-      const y1 = coords[j + 1];
-      const x2 = coords[j + 2];
-      const y2 = coords[j + 3];
-      const xDif = (x2 - x1) * axisRatio;
-      const yDif = (y2 - y1) * axisRatio;
-      const tick = [
-        (normals[i] * ticks[k]) / (width - pl - pr),
-        (normals[i + 1] * ticks[k]) / (height - pt - pb)
-      ];
-      tickCoords.push(normals[i] * (xDif + tick[0] * state.tickAlign) + x1);
-      tickCoords.push(normals[i + 1] * (yDif + tick[1] * state.tickAlign) + y1);
-      tickCoords.push(normals[i] * (xDif - tick[0] * (1 - state.tickAlign)) + x1);
-      tickCoords.push(normals[i + 1] * (yDif - tick[1] * (1 - state.tickAlign)) + y1);
-      state.labelCoords.push(normals[i] * xDif + x1);
-      state.labelCoords.push(normals[i + 1] * yDif + y1);
-    }
+    // Calculate ticks and labels positions using the utility function
+    const { tickCoords, labelCoords } = calculateTicksAndLabels(state, coords, axisRatio);
+    state.labelCoords = labelCoords;
+    
     // draw ticks
-    if (ticks.length) {
+    if (state.ticks && state.ticks.length) {
+      // Get tick points from the utility function
+      const tickPoints = calculateTickPoints(state, tickCoords, dimensions);
+      
       ctx.lineWidth = state.axisWidth / 2;
       ctx.beginPath();
-      for (let i = 0, j = 0; i < tickCoords.length; i += 4, j += 1) {
-        if (almost(state.lines[j], state.opposite.coordinate.axisOrigin)) continue;
-        const x1 = left + pl + tickCoords[i] * (width - pl - pr);
-        const y1 = top + pt + tickCoords[i + 1] * (height - pt - pb);
-        const x2 = left + pl + tickCoords[i + 2] * (width - pl - pr);
-        const y2 = top + pt + tickCoords[i + 3] * (height - pt - pb);
+      
+      // Draw all the tick points
+      for (const point of tickPoints) {
+        const { x1, y1, x2, y2 } = point;
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
       }
@@ -486,15 +345,10 @@ class Grid extends Base {
     }
     // draw axis
     if (state.coordinate.axis && state.axisColor) {
-      const axisCoords = state.opposite.coordinate.getCoords(
-        [state.coordinate.axisOrigin],
-        state.opposite
-      );
+      // Get axis coordinates from the utility function
+      const { x1, y1, x2, y2 } = calculateAxisCoordinates(state, dimensions);
+      
       ctx.lineWidth = state.axisWidth / 2;
-      const x1 = left + pl + clamp(axisCoords[0], 0, 1) * (width - pr - pl);
-      const y1 = top + pt + clamp(axisCoords[1], 0, 1) * (height - pt - pb);
-      const x2 = left + pl + clamp(axisCoords[2], 0, 1) * (width - pr - pl);
-      const y2 = top + pt + clamp(axisCoords[3], 0, 1) * (height - pt - pb);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -511,15 +365,15 @@ class Grid extends Base {
       const ctx = this.context;
       const [width, height] = state.shape;
       const [pt, pr, pb, pl] = state.padding;
+      const dimensions = { width, height, padding: [pt, pr, pb, pl] };
 
       ctx.font = `300 ${state.fontSize}px ${state.fontFamily}`;
       ctx.fillStyle = state.labelColor;
       ctx.textBaseline = 'top';
       const textHeight = state.fontSize;
-      const indent = state.axisWidth + 1.5;
-      const textOffset = state.tickAlign < 0.5
-        ? -textHeight - state.axisWidth * 2 : state.axisWidth * 2;
+      
       const isOpp = state.coordinate.orientation === 'y' && !state.opposite.disabled;
+      
       for (let i = 0; i < state.labels.length; i += 1) {
         let label = state.labels[i];
         if (label == null) continue;
@@ -527,18 +381,17 @@ class Grid extends Base {
         if (isOpp && almost(state.lines[i], state.opposite.coordinate.axisOrigin)) continue;
 
         const textWidth = ctx.measureText(label).width;
-
-        let textLeft = state.labelCoords[i * 2] * (width - pl - pr) + indent + pl;
-
-        if (state.coordinate.orientation === 'y') {
-          textLeft = clamp(textLeft, indent, width - textWidth - 1 - state.axisWidth);
+        
+        // Get label position from the utility function
+        const { textLeft, textTop, shouldNegate } = calculateLabelPosition(
+          state, i, label, textWidth, textHeight, dimensions
+        );
+        
+        // Apply negation if needed (for y-axis)
+        if (shouldNegate) {
           label *= -1;
         }
-
-        let textTop = state.labelCoords[i * 2 + 1] * (height - pt - pb) + textOffset + pt;
-        if (state.coordinate.orientation === 'x') {
-          textTop = clamp(textTop, 0, height - textHeight - textOffset);
-        }
+        
         ctx.fillText(label, textLeft, textTop);
       }
     }
