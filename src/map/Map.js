@@ -72,7 +72,7 @@ export class Map extends Base {
     // Hook into Fabric's render events to draw the grid after Fabric has rendered
     this.fabric.on('before:render', () => {
       if (this.grid) {
-        this.grid.draw();
+        this.grid.render();
       }
     });
     
@@ -82,7 +82,7 @@ export class Map extends Base {
     }
     
     // Initial draw
-    this.grid.draw();
+    this.grid.render();
     
     return this.grid;
   }
