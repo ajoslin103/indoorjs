@@ -132,7 +132,7 @@ export class Map extends Base {
     if (this.grid) {
       this.grid.width = width;
       this.grid.height = height;
-      this.grid.update();
+      this.grid.updateConfiguration();
     }
 
     const dx = width / 2.0 - oldWidth / 2.0;
@@ -165,14 +165,14 @@ export class Map extends Base {
         const centerY = -vpt[5] / vpt[3];
         
         // Update the grid with the calculated world coordinates
-        this.grid.update2({
+        this.grid.updateViewport({
           x: centerX,
           y: centerY,
           zoom: this.zoom
         });
       } else {
         // Fallback if no viewport transform is available
-        this.grid.update2({
+        this.grid.updateViewport({
           x: 0,
           y: 0,
           zoom: this.zoom

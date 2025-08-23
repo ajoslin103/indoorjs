@@ -323,7 +323,7 @@ export class GridControl extends Base {
     grid.axisY.color = this.color;
     
     // Update grid
-    grid.update();
+    grid.updateConfiguration();
     
     return this;
   }
