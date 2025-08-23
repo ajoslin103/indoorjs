@@ -359,7 +359,7 @@ class Grid extends Base {
     this.drawLabels(state, ctx);
   }
 
-  drawLabels(state, ctx = this.context) {
+  drawLabels(state, ctx) {
     if (state.labels) {
       const [width, height] = state.shape;
       const [pt, pr, pb, pl] = state.padding;

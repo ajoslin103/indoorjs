@@ -29,7 +29,7 @@ The GridControl is a class that describes the grid's visibility and appearance. 
 
 ### The Grid
 
-The Grid component uses the canvas element's 2D drawing context (provided at initialization by the Map) to paint the gridlines, axis, and labels. So it can display a visible coordinate reference for all the Fabric.js objects, without affecting those objects in any way. 
+The Grid class uses the canvas element's 2D drawing context (provided at initialization by the Map) to paint the gridlines, axis, and labels. So it can display a visible coordinate reference for all the Fabric.js objects, without affecting those objects in any way. 
 
 The Grid draws according to the GridControl object. Provided anew each time, the GridControl supplies the width & height, the origin and zoom level, to calculate the gridlines, axis, and labels. The Grid uses all pure calculations, emits no events, and is not reactive -- but it will appear to be reacting to the zoom level and pan events
 
