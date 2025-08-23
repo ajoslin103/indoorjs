@@ -201,17 +201,6 @@ class Grid extends Base {
 
     this.center = new Point(this.center);
   }
-
-  /**
-   * Draw grid to the canvas using its current state
-   * @return {Grid} This instance for chaining
-   */
-  draw() {
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.drawLines(this.state.x);
-    this.drawLines(this.state.y);
-    return this;
-  }
   
   /**
    * Draw grid to the canvas using the provided control
@@ -285,6 +274,17 @@ class Grid extends Base {
     this.center = originalState.center;
     this.update();
     
+    return this;
+  }
+
+  /**
+   * Draw grid to the canvas using its current state
+   * @return {Grid} This instance for chaining
+   */
+  draw() {
+    this.context.clearRect(0, 0, this.width, this.height);
+    this.drawLines(this.state.x, this.context);
+    this.drawLines(this.state.y, this.context);
     return this;
   }
 
