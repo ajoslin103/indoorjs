@@ -19,10 +19,69 @@ import {
  * coordinate reference without affecting Fabric.js objects.
  */
 class Grid extends Base {
+  // Canvas rendering context
+  context = null;
+  
+  // State storage for x and y axes
+  state = {};
+  
+  // Canvas dimensions
+  width = 0;
+  height = 0;
+  
+  // Device pixel ratio for high DPI displays
+  pixelRatio = window.devicePixelRatio;
+  
+  // Grid behavior flags
+  autostart = true;
+  interactions = true;
+  
+  // Center position with zoom
+  center = { x: 0, y: 0, zoom: 1 };
+  
+  // Axis objects for x and y dimensions
+  axisX = null;
+  axisY = null;
+  
+  // Grid configuration
+  type = 'linear';
+  name = '';
+  units = '';
+  minZoom = -Infinity;
+  maxZoom = Infinity;
+  min = -Infinity;
+  max = Infinity;
+  offset = 0;
+  origin = 0.5;
+  zoom = 1;
+  zoomEnabled = true;
+  panEnabled = true;
+  
+  // Label settings
+  labels = true;
+  fontSize = '11pt';
+  fontFamily = 'sans-serif';
+  padding = 0;
+  color = 'rgb(0,0,0,1)';
+  
+  // Line settings
+  lines = true;
+  tick = 8;
+  tickAlign = 0.5;
+  lineWidth = 1;
+  distance = 13;
+  style = 'lines';
+  lineColor = 0.4;
+  
+  // Axis settings
+  axis = true;
+  axisOrigin = 0;
+  axisWidth = 2;
+  axisColor = 0.8;
+  
   constructor(context, opts) {
     super(opts);
     this.context = context;
-    this.state = {};
     this.setDefaults();
     this.updateConfiguration(opts);
   }
@@ -92,73 +151,44 @@ class Grid extends Base {
   }
 
   setDefaults() {
-    this.pixelRatio = window.devicePixelRatio;
-    this.autostart = true;
-    this.interactions = true;
-
-    this.defaults = Object.assign(
-      {
-        type: 'linear',
-        name: '',
-        units: '',
-        state: {},
-
-        // visible range params
-        minZoom: -Infinity,
-        maxZoom: Infinity,
-        min: -Infinity,
-        max: Infinity,
-        offset: 0,
-        origin: 0.5,
-        center: {
-          x: 0,
-          y: 0,
-          zoom: 1
-        },
-        zoom: 1,
-        zoomEnabled: true,
-        panEnabled: true,
-
-        // labels
-        labels: true,
-        fontSize: '11pt',
-        fontFamily: 'sans-serif',
-        padding: 0,
-        color: 'rgb(0,0,0,1)',
-
-        // lines params
-        lines: true,
-        tick: 8,
-        tickAlign: 0.5,
-        lineWidth: 1,
-        distance: 13,
-        style: 'lines',
-        lineColor: 0.4,
-
-        // axis params
-        axis: true,
-        axisOrigin: 0, // This is the point where the axis crosses
-        axisWidth: 2,
-        axisColor: 0.8,
-
-        // stub methods
-        // return coords for the values, redefined by axes
-        getCoords: () => [0, 0, 0, 0],
-
-        // return 0..1 ratio based on value/offset/range, redefined by axes
-        getRatio: () => 0,
-
-        // default label formatter
-        format: v => v
-      },
-      gridStyle,
-      this._options
-    );
-
-    this.axisX = new Axis('x', this.defaults);
-    this.axisY = new Axis('y', this.defaults);
-
-    this.axisX = Object.assign({}, this.defaults, {
+    // Create defaults object with basic axis functionality and applying grid styles
+    const baseDefaults = {
+      state: {},
+      // Ensure a default color is present for calculations that depend on coord.color
+      color: this.color || 'rgba(0,0,0,1)',
+      
+      // Geometry/viewport defaults expected by Axis/calculations
+      zoom: 1,
+      offset: 0,
+      minZoom: -Infinity,
+      maxZoom: Infinity,
+      min: -Infinity,
+      max: Infinity,
+      axis: true,
+      axisOrigin: 0,
+      
+      // Style defaults expected in grid-calcs and drawing
+      padding: 0,
+      tickAlign: 0.5,
+      lineWidth: 1,
+      axisWidth: 2,
+      axisColor: 0.8,
+      labels: true,
+      lines: true,
+      fontSize: '11pt',
+      fontFamily: 'sans-serif',
+      
+      // Methods that will be overridden by specific axis implementations
+      getCoords: () => [0, 0, 0, 0],
+      getRatio: () => 0,
+      format: v => v
+    };
+    
+    // Apply grid style and user options
+    this.defaults = Object.assign({}, baseDefaults, gridStyle, this._options);
+    
+    // Initialize axes
+    this.axisX = Object.assign(new Axis('x', this.defaults), {
       orientation: 'x',
       offset: this.center.x,
       getCoords: (values, state) => {
@@ -174,10 +204,10 @@ class Grid extends Base {
         return coords;
       },
       getRange: state => state.shape[0] * state.coordinate.zoom,
-      // FIXME: handle infinity case here
       getRatio: (value, state) => (value - state.offset) / state.range
     });
-    this.axisY = Object.assign({}, this.defaults, {
+    
+    this.axisY = Object.assign(new Axis('y', this.defaults), {
       orientation: 'y',
       offset: this.center.y,
       getCoords: (values, state) => {
@@ -195,10 +225,13 @@ class Grid extends Base {
       getRange: state => state.shape[1] * state.coordinate.zoom,
       getRatio: (value, state) => 1 - (value - state.offset) / state.range
     });
-
-    Object.assign(this, this.defaults);
-    Object.assign(this, this._options);
-
+    
+    // Apply any remaining options
+    if (this._options) {
+      Object.assign(this, this._options);
+    }
+    
+    // Ensure center is a Point object
     this.center = new Point(this.center);
   }
 
