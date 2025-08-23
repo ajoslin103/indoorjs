@@ -35,7 +35,15 @@ export class GridControl extends Base {
         x: 0,
         y: 0,
         zoom: 1
-      }
+      },
+
+      // Grid dimensions
+      width: 0,
+      height: 0,
+
+      // how many widths and heights to draw 
+      // from the origin, helps when panning
+      multiplier: 4 // 4x width and height by zoom level
     };
 
     // set defaults
