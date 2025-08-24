@@ -278,8 +278,12 @@ export class Schematic extends Base {
     
     // Handle cases where the mouse leaves the canvas during panning
     this.fabric.on('mouse:out', (opt) => {
-      if (this.debugEvents) console.log('[fabric] mouse:out', { relatedTarget: opt?.e?.relatedTarget });
-      if (this.isPanning) {
+      const relatedTarget = opt?.e?.relatedTarget || null;
+      if (this.debugEvents) console.log('[fabric] mouse:out', { relatedTarget });
+      // Only cancel when actually leaving the canvas element (e.g., into <body> or outside)
+      const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || (this.fabric.getElement && this.fabric.getElement()));
+      const leavingCanvas = !!relatedTarget && (relatedTarget === document.body || (domEl && !domEl.contains(relatedTarget)));
+      if (this.isPanning && leavingCanvas) {
         if (this.debugEvents) console.log('[drag] mouse:out - cancel panning');
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
@@ -386,10 +390,14 @@ export class Schematic extends Base {
         return false;
       });
 
-      // Minimal prevention to keep ctrl+click drags delivering move events
+      // Minimal prevention to keep ctrl+click and two-finger/right-click drags delivering move events
       domEl.addEventListener('mousedown', (e) => {
-        if (e.ctrlKey && e.button === 0) {
-          if (this.debugEvents) console.log('[dom] mousedown preventDefault for ctrl+click');
+        const isCtrlPrimary = e.ctrlKey && e.button === 0;
+        const isSecondaryBtn = e.button === 2; // two-finger/right-click
+        if (isCtrlPrimary || isSecondaryBtn) {
+          if (this.debugEvents) console.log('[dom] mousedown preventDefault', { ctrlPrimary: isCtrlPrimary, secondaryBtn: isSecondaryBtn });
+          // Suppress upcoming contextmenu so it doesn't cancel our pan
+          this._suppressNextContextMenu = true;
           e.preventDefault();
         }
       }, true); // capture to run before default handlers
