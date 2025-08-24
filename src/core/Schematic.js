@@ -32,6 +32,26 @@ export class Schematic extends Base {
     this.fabric = mapInstance.fabric;
     this.mapInstance = mapInstance; // Store reference to map instance
     
+    // Ensure initial grid alignment matches objects (use canvas center in world coords)
+    if (this.mapInstance && this.mapInstance.grid && this.fabric) {
+      const alignInitialGrid = () => {
+        const canvas = this.fabric;
+        const vpt = canvas.viewportTransform;
+        if (vpt) {
+          const leftX = -vpt[4] / vpt[0];
+          const topY = -vpt[5] / vpt[3];
+          this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: this.mapInstance.zoom });
+        } else {
+          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
+        }
+        this.mapInstance.grid.render();
+        if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
+      };
+      // Run after Fabric has completed its first render (double rAF for safety)
+      const raf = (fn) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 0));
+      raf(() => raf(alignInitialGrid));
+    }
+    
     // Initialize zoom debounce properties
     this.zoomDebounceTimeout = null;
     this.zoomDebounceDelay = options?.zoomDebounceDelay || 200; // ms
@@ -451,14 +471,14 @@ export class Schematic extends Base {
         const point = new fabric.Point(px, py);
         this.fabric.zoomToPoint(point, clampedZoom);
 
-        // Update grid viewport to reflect new transform (center of canvas in world coords)
+        // Update grid viewport to reflect new transform (viewport top-left in world coords)
         const canvas = this.fabric;
         const vpt = canvas.viewportTransform;
         if (this.mapInstance.grid) {
           if (vpt) {
-            const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
-            const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-            this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: clampedZoom });
+            const leftX = -vpt[4] / vpt[0];
+            const topY = -vpt[5] / vpt[3];
+            this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: clampedZoom });
           } else {
             this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
           }
@@ -489,9 +509,9 @@ export class Schematic extends Base {
           const vpt = canvas.viewportTransform;
           if (this.mapInstance.grid) {
             if (vpt) {
-              const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
-              const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-              this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
+              const leftX = -vpt[4] / vpt[0];
+              const topY = -vpt[5] / vpt[3];
+              this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: this.mapInstance.zoom });
             } else {
               this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
             }
