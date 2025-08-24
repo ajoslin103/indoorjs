@@ -33,6 +33,13 @@ export class Schematic extends Base {
     // Initialize zoom debounce properties
     this.zoomDebounceTimeout = null;
     this.zoomDebounceDelay = options?.zoomDebounceDelay || 200; // ms
+    // Debug flag for event logging
+    this.debugEvents = options?.debugEvents ?? true;
+    if (this.debugEvents) console.log('[schematic] init', { interactions: options?.interactions !== false });
+    // Expose instance for manual inspection
+    if (typeof window !== 'undefined') {
+      window.schematic = this;
+    }
     
     // Register event listeners if interactions are enabled
     if (options?.interactions !== false) {
@@ -188,29 +195,43 @@ export class Schematic extends Base {
     this.lastPosX = 0;
     this.lastPosY = 0;
     
-    // Prevent context menu on right-click for panning
-    if (this.container) {
-      this.container.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-      }, false);
-    }
+    // // Prevent context menu on right-click for panning
+    // if (this.container) {
+    //   this.container.addEventListener('contextmenu', (e) => {
+    //     if (this.debugEvents) console.log('[drag] contextmenu prevented');
+    //     e.preventDefault();
+    //     return false;
+    //   }, false);
+    // }
     
     // Register mouse events for right-click panning
+    if (this.debugEvents) console.log('[events] registering fabric mouse handlers');
+
+    const isSecondary = (e) => e && (
+      e.button === 2 || // standard right click
+      e.which === 3  || // some browsers
+      (e.ctrlKey && e.button === 0) // ctrl+left on macOS
+    );
+
     this.fabric.on('mouse:down', (opt) => {
-      // Check if it's a right-click (button 3)
-      if (opt.e.button === 2) {
+      if (this.debugEvents) console.log('[fabric] mouse:down', { button: opt.e.button, which: opt.e.which, ctrlKey: !!opt.e.ctrlKey, x: opt.e.clientX, y: opt.e.clientY });
+      // Check if it's a right-click / secondary click
+      if (isSecondary(opt.e)) {
+        if (this.debugEvents) console.log('[drag] mouse:down', { button: opt.e.button, x: opt.e.clientX, y: opt.e.clientY });
         this.isPanning = true;
         this.lastPosX = opt.e.clientX;
         this.lastPosY = opt.e.clientY;
         this.fabric.defaultCursor = 'grabbing';
+        if (this.debugEvents) console.log('[drag] start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
       }
     });
     
     this.fabric.on('mouse:move', (opt) => {
+      // if (this.debugEvents) console.log('[fabric] mouse:move', { x: opt.e.clientX, y: opt.e.clientY });
       if (this.isPanning) {
         const deltaX = opt.e.clientX - this.lastPosX;
         const deltaY = opt.e.clientY - this.lastPosY;
+        // if (this.debugEvents) console.log('[drag] mouse:move', { deltaX, deltaY, from: { x: this.lastPosX, y: this.lastPosY }, to: { x: opt.e.clientX, y: opt.e.clientY } });
         
         // Update last position
         this.lastPosX = opt.e.clientX;
@@ -218,6 +239,7 @@ export class Schematic extends Base {
         
         // Pan the fabric canvas
         this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
+        if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
         
         // Update the map to refresh the grid position after panning
         if (this.mapInstance) {
@@ -229,8 +251,10 @@ export class Schematic extends Base {
       }
     });
     
-    this.fabric.on('mouse:up', () => {
+    this.fabric.on('mouse:up', (opt) => {
+      if (this.debugEvents) console.log('[fabric] mouse:up', { button: opt?.e?.button, which: opt?.e?.which });
       if (this.isPanning) {
+        if (this.debugEvents) console.log('[drag] mouse:up - end panning');
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
         
@@ -244,8 +268,10 @@ export class Schematic extends Base {
     });
     
     // Handle cases where the mouse leaves the canvas during panning
-    this.fabric.on('mouse:out', () => {
+    this.fabric.on('mouse:out', (opt) => {
+      if (this.debugEvents) console.log('[fabric] mouse:out', { relatedTarget: opt?.e?.relatedTarget });
       if (this.isPanning) {
+        if (this.debugEvents) console.log('[drag] mouse:out - cancel panning');
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
         
@@ -257,6 +283,160 @@ export class Schematic extends Base {
         this.emit('pan:completed');
       }
     });
+
+    // One-time render confirmation
+    const onceAfterRender = () => {
+      if (this.debugEvents) console.log('[fabric] after:render (once)');
+      this.fabric.off('after:render', onceAfterRender);
+    };
+    this.fabric.on('after:render', onceAfterRender);
+
+    // DOM-level fallback listeners on Fabric canvas element
+    const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || this.fabric.getElement && this.fabric.getElement());
+    if (domEl) {
+      if (this.debugEvents) console.log('[dom] attaching mouse listeners to canvas element');
+      const isDomSecondary = (e) => (
+        e.button === 2 ||
+        e.buttons === 2 ||
+        e.which === 3 ||
+        (e.ctrlKey && e.button === 0)
+      );
+
+      // domEl.addEventListener('mousedown', (e) => {
+      //   if (this.debugEvents) console.log('[dom] mousedown', { button: e.button, buttons: e.buttons, which: e.which, ctrlKey: !!e.ctrlKey, x: e.clientX, y: e.clientY });
+      //   if (this.debugEvents) console.log('[dom] mousedown isDomSecondary?', isDomSecondary(e));
+      //   // Start panning on secondary click if Fabric doesn't emit mouse:down
+      //   if (isDomSecondary(e)) {
+      //     this.isPanning = true;
+      //     this.lastPosX = e.clientX;
+      //     this.lastPosY = e.clientY;
+      //     this.fabric.defaultCursor = 'grabbing';
+      //     if (this.debugEvents) console.log('[drag] dom start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
+      //     // Avoid selecting/target finding during pan
+      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
+      //     this.fabric.skipTargetFind = true;
+      //     this._prevSelection = this.fabric.selection;
+      //     this.fabric.selection = false;
+      //     e.preventDefault();
+      //     return false;
+      //   }
+      // }, false);
+      // domEl.addEventListener('mousemove', (e) => {
+      //   if (this.debugEvents) console.log('[dom] mousemove', { buttons: e.buttons, x: e.clientX, y: e.clientY });
+      //   if (this.isPanning) {
+      //     const deltaX = e.clientX - this.lastPosX;
+      //     const deltaY = e.clientY - this.lastPosY;
+      //     if (this.debugEvents) console.log('[drag] dom move', { deltaX, deltaY });
+      //     this.lastPosX = e.clientX;
+      //     this.lastPosY = e.clientY;
+      //     this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
+      //     if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+      //     if (this.mapInstance) this.mapInstance.update();
+      //     this.emit('pan:move', { deltaX, deltaY });
+      //     e.preventDefault();
+      //     return false;
+      //   }
+      // }, false);
+      // domEl.addEventListener('mouseup', (e) => {
+      //   if (this.debugEvents) console.log('[dom] mouseup', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
+      //   if (this.isPanning) {
+      //     if (this.debugEvents) console.log('[drag] dom end panning');
+      //     this.isPanning = false;
+      //     this.fabric.defaultCursor = 'default';
+      //     if (this.mapInstance) this.mapInstance.update();
+      //     this.emit('pan:completed');
+      //     // Restore target finding
+      //     if (this._prevSkipTargetFind !== undefined) {
+      //       this.fabric.skipTargetFind = this._prevSkipTargetFind;
+      //       this._prevSkipTargetFind = undefined;
+      //     }
+      //     if (this._prevSelection !== undefined) {
+      //       this.fabric.selection = this._prevSelection;
+      //       this._prevSelection = undefined;
+      //     }
+      //     e.preventDefault();
+      //     return false;
+      //   }
+      // }, false);
+
+      domEl.addEventListener('contextmenu', (e) => {
+        if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas');
+        e.preventDefault();
+        return false;
+      });
+
+      // // Aux click fires for non-primary buttons in some browsers
+      // domEl.addEventListener('auxclick', (e) => {
+      //   if (this.debugEvents) console.log('[dom] auxclick', { button: e.button, buttons: e.buttons, which: e.which });
+      //   if (isDomSecondary(e) && !this.isPanning) {
+      //     this.isPanning = true;
+      //     this.lastPosX = e.clientX;
+      //     this.lastPosY = e.clientY;
+      //     this.fabric.defaultCursor = 'grabbing';
+      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
+      //     this.fabric.skipTargetFind = true;
+      //     this._prevSelection = this.fabric.selection;
+      //     this.fabric.selection = false;
+      //     e.preventDefault();
+      //   }
+      // }, false);
+
+      // Pointer events (robust across devices)
+      // domEl.addEventListener('pointerdown', (e) => {
+      //   if (this.debugEvents) console.log('[dom] pointerdown', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
+      //   if (isDomSecondary(e)) {
+      //     this.isPanning = true;
+      //     this.lastPosX = e.clientX;
+      //     this.lastPosY = e.clientY;
+      //     this.fabric.defaultCursor = 'grabbing';
+      //     if (this.debugEvents) console.log('[drag] dom start panning (pointer)');
+      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
+      //     this.fabric.skipTargetFind = true;
+      //     this._prevSelection = this.fabric.selection;
+      //     this.fabric.selection = false;
+      //     // Capture pointer so we keep receiving events while panning
+      //     try { domEl.setPointerCapture && domEl.setPointerCapture(e.pointerId); } catch (_) {}
+      //     e.preventDefault();
+      //   }
+      // }, false);
+      // domEl.addEventListener('pointermove', (e) => {
+      //   if (this.debugEvents) console.log('[dom] pointermove', { x: e.clientX, y: e.clientY });
+      //   if (this.isPanning) {
+      //     const deltaX = e.clientX - this.lastPosX;
+      //     const deltaY = e.clientY - this.lastPosY;
+      //     if (this.debugEvents) console.log('[drag] dom move (pointer)', { deltaX, deltaY });
+      //     this.lastPosX = e.clientX;
+      //     this.lastPosY = e.clientY;
+      //     this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
+      //     if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+      //     if (this.mapInstance) this.mapInstance.update();
+      //     this.emit('pan:move', { deltaX, deltaY });
+      //     e.preventDefault();
+      //   }
+      // }, false);
+      // domEl.addEventListener('pointerup', (e) => {
+      //   if (this.debugEvents) console.log('[dom] pointerup', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
+      //   if (this.isPanning) {
+      //     if (this.debugEvents) console.log('[drag] dom end panning (pointer)');
+      //     this.isPanning = false;
+      //     this.fabric.defaultCursor = 'default';
+      //     if (this.mapInstance) this.mapInstance.update();
+      //     this.emit('pan:completed');
+      //     if (this._prevSkipTargetFind !== undefined) {
+      //       this.fabric.skipTargetFind = this._prevSkipTargetFind;
+      //       this._prevSkipTargetFind = undefined;
+      //     }
+      //     if (this._prevSelection !== undefined) {
+      //       this.fabric.selection = this._prevSelection;
+      //       this._prevSelection = undefined;
+      //     }
+      //     try { domEl.releasePointerCapture && domEl.releasePointerCapture(e.pointerId); } catch (_) {}
+      //     e.preventDefault();
+      //   }
+      // }, false);
+    } else if (this.debugEvents) {
+      console.warn('[dom] fabric canvas element not found for DOM listeners');
+    }
     
     return this;
   }
