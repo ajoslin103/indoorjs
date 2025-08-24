@@ -213,6 +213,13 @@ export class Schematic extends Base {
         this.lastPosX = opt.e.clientX;
         this.lastPosY = opt.e.clientY;
         this.fabric.defaultCursor = 'grabbing';
+        // Disable selection/target finding during pan
+        this._prevSkipTargetFind = this.fabric.skipTargetFind;
+        this.fabric.skipTargetFind = true;
+        this._prevSelection = this.fabric.selection;
+        this.fabric.selection = false;
+        // If pan initiated by ctrl+left (macOS secondary), suppress the next contextmenu
+        this._suppressNextContextMenu = !!opt.e.ctrlKey && opt.e.button === 0;
         if (this.debugEvents) console.log('[drag] start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
       }
     });
@@ -248,6 +255,17 @@ export class Schematic extends Base {
         if (this.debugEvents) console.log('[drag] mouse:up - end panning');
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
+        // Clear any pending contextmenu suppression
+        this._suppressNextContextMenu = false;
+        // Restore selection/target finding
+        if (this._prevSkipTargetFind !== undefined) {
+          this.fabric.skipTargetFind = this._prevSkipTargetFind;
+          this._prevSkipTargetFind = undefined;
+        }
+        if (this._prevSelection !== undefined) {
+          this.fabric.selection = this._prevSelection;
+          this._prevSelection = undefined;
+        }
         
         // Final grid update when panning completes
         if (this.mapInstance) {
@@ -265,6 +283,17 @@ export class Schematic extends Base {
         if (this.debugEvents) console.log('[drag] mouse:out - cancel panning');
         this.isPanning = false;
         this.fabric.defaultCursor = 'default';
+        // Clear any pending contextmenu suppression
+        this._suppressNextContextMenu = false;
+        // Restore selection/target finding
+        if (this._prevSkipTargetFind !== undefined) {
+          this.fabric.skipTargetFind = this._prevSkipTargetFind;
+          this._prevSkipTargetFind = undefined;
+        }
+        if (this._prevSelection !== undefined) {
+          this.fabric.selection = this._prevSelection;
+          this._prevSelection = undefined;
+        }
         
         // Final grid update when mouse leaves during panning
         if (this.mapInstance) {
@@ -280,6 +309,31 @@ export class Schematic extends Base {
       this.container.addEventListener('contextmenu', (e) => {
         if (this.debugEvents) console.log('[drag] contextmenu prevented');
         e.preventDefault();
+        // If we intentionally started pan via ctrl+click, do not cancel here; just suppress the menu
+        if (this._suppressNextContextMenu) {
+          return false;
+        }
+        // otherwise ensure panning is not left on if context menu interrupts mouseup
+        if (this.isPanning) {
+          if (this.debugEvents) console.log('[drag] contextmenu - cancel panning');
+          this.isPanning = false;
+          this.fabric.defaultCursor = 'default';
+          // Clear suppression if any
+          this._suppressNextContextMenu = false;
+          // Restore selection/target finding
+          if (this._prevSkipTargetFind !== undefined) {
+            this.fabric.skipTargetFind = this._prevSkipTargetFind;
+            this._prevSkipTargetFind = undefined;
+          }
+          if (this._prevSelection !== undefined) {
+            this.fabric.selection = this._prevSelection;
+            this._prevSelection = undefined;
+          }
+          if (this.mapInstance) {
+            this.mapInstance.update();
+          }
+          this.emit('pan:completed');
+        }
         return false;
       }, false);
     }
@@ -305,8 +359,40 @@ export class Schematic extends Base {
       domEl.addEventListener('contextmenu', (e) => {
         if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas');
         e.preventDefault();
+        // If we intentionally started pan via ctrl+click, do not cancel here; just suppress the menu
+        if (this._suppressNextContextMenu) {
+          return false;
+        }
+        if (this.isPanning) {
+          if (this.debugEvents) console.log('[drag] dom contextmenu - cancel panning');
+          this.isPanning = false;
+          this.fabric.defaultCursor = 'default';
+          // Clear suppression if any
+          this._suppressNextContextMenu = false;
+          // Restore selection/target finding
+          if (this._prevSkipTargetFind !== undefined) {
+            this.fabric.skipTargetFind = this._prevSkipTargetFind;
+            this._prevSkipTargetFind = undefined;
+          }
+          if (this._prevSelection !== undefined) {
+            this.fabric.selection = this._prevSelection;
+            this._prevSelection = undefined;
+          }
+          if (this.mapInstance) {
+            this.mapInstance.update();
+          }
+          this.emit('pan:completed');
+        }
         return false;
       });
+
+      // Minimal prevention to keep ctrl+click drags delivering move events
+      domEl.addEventListener('mousedown', (e) => {
+        if (e.ctrlKey && e.button === 0) {
+          if (this.debugEvents) console.log('[dom] mousedown preventDefault for ctrl+click');
+          e.preventDefault();
+        }
+      }, true); // capture to run before default handlers
 
       // domEl.addEventListener('mousedown', (e) => {
       //   if (this.debugEvents) console.log('[dom] mousedown', { button: e.button, buttons: e.buttons, which: e.which, ctrlKey: !!e.ctrlKey, x: e.clientX, y: e.clientY });
