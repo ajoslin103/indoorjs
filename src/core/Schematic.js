@@ -195,15 +195,6 @@ export class Schematic extends Base {
     this.lastPosX = 0;
     this.lastPosY = 0;
     
-    // // Prevent context menu on right-click for panning
-    // if (this.container) {
-    //   this.container.addEventListener('contextmenu', (e) => {
-    //     if (this.debugEvents) console.log('[drag] contextmenu prevented');
-    //     e.preventDefault();
-    //     return false;
-    //   }, false);
-    // }
-    
     // Register mouse events for right-click panning
     if (this.debugEvents) console.log('[events] registering fabric mouse handlers');
 
@@ -283,6 +274,15 @@ export class Schematic extends Base {
         this.emit('pan:completed');
       }
     });
+    
+    // Prevent context menu on right-click for panning
+    if (this.container) {
+      this.container.addEventListener('contextmenu', (e) => {
+        if (this.debugEvents) console.log('[drag] contextmenu prevented');
+        e.preventDefault();
+        return false;
+      }, false);
+    }
 
     // One-time render confirmation
     const onceAfterRender = () => {
@@ -301,6 +301,12 @@ export class Schematic extends Base {
         e.which === 3 ||
         (e.ctrlKey && e.button === 0)
       );
+
+      domEl.addEventListener('contextmenu', (e) => {
+        if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas');
+        e.preventDefault();
+        return false;
+      });
 
       // domEl.addEventListener('mousedown', (e) => {
       //   if (this.debugEvents) console.log('[dom] mousedown', { button: e.button, buttons: e.buttons, which: e.which, ctrlKey: !!e.ctrlKey, x: e.clientX, y: e.clientY });
@@ -358,12 +364,6 @@ export class Schematic extends Base {
       //     return false;
       //   }
       // }, false);
-
-      domEl.addEventListener('contextmenu', (e) => {
-        if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas');
-        e.preventDefault();
-        return false;
-      });
 
       // // Aux click fires for non-primary buttons in some browsers
       // domEl.addEventListener('auxclick', (e) => {
