@@ -11,7 +11,9 @@ export class Schematic extends Base {
     super(options);
 
     this.defaults = {
-      showGrid: true
+      showGrid: true,
+      // Control whether zoom is applied around viewport center (true) or mouse position (false)
+      zoomOnCenter: false
     };
 
     // set defaults
@@ -401,133 +403,7 @@ export class Schematic extends Base {
           e.preventDefault();
         }
       }, true); // capture to run before default handlers
-
-      // domEl.addEventListener('mousedown', (e) => {
-      //   if (this.debugEvents) console.log('[dom] mousedown', { button: e.button, buttons: e.buttons, which: e.which, ctrlKey: !!e.ctrlKey, x: e.clientX, y: e.clientY });
-      //   if (this.debugEvents) console.log('[dom] mousedown isDomSecondary?', isDomSecondary(e));
-      //   // Start panning on secondary click if Fabric doesn't emit mouse:down
-      //   if (isDomSecondary(e)) {
-      //     this.isPanning = true;
-      //     this.lastPosX = e.clientX;
-      //     this.lastPosY = e.clientY;
-      //     this.fabric.defaultCursor = 'grabbing';
-      //     if (this.debugEvents) console.log('[drag] dom start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
-      //     // Avoid selecting/target finding during pan
-      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
-      //     this.fabric.skipTargetFind = true;
-      //     this._prevSelection = this.fabric.selection;
-      //     this.fabric.selection = false;
-      //     e.preventDefault();
-      //     return false;
-      //   }
-      // }, false);
-      // domEl.addEventListener('mousemove', (e) => {
-      //   if (this.debugEvents) console.log('[dom] mousemove', { buttons: e.buttons, x: e.clientX, y: e.clientY });
-      //   if (this.isPanning) {
-      //     const deltaX = e.clientX - this.lastPosX;
-      //     const deltaY = e.clientY - this.lastPosY;
-      //     if (this.debugEvents) console.log('[drag] dom move', { deltaX, deltaY });
-      //     this.lastPosX = e.clientX;
-      //     this.lastPosY = e.clientY;
-      //     this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
-      //     if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
-      //     if (this.mapInstance) this.mapInstance.update();
-      //     this.emit('pan:move', { deltaX, deltaY });
-      //     e.preventDefault();
-      //     return false;
-      //   }
-      // }, false);
-      // domEl.addEventListener('mouseup', (e) => {
-      //   if (this.debugEvents) console.log('[dom] mouseup', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
-      //   if (this.isPanning) {
-      //     if (this.debugEvents) console.log('[drag] dom end panning');
-      //     this.isPanning = false;
-      //     this.fabric.defaultCursor = 'default';
-      //     if (this.mapInstance) this.mapInstance.update();
-      //     this.emit('pan:completed');
-      //     // Restore target finding
-      //     if (this._prevSkipTargetFind !== undefined) {
-      //       this.fabric.skipTargetFind = this._prevSkipTargetFind;
-      //       this._prevSkipTargetFind = undefined;
-      //     }
-      //     if (this._prevSelection !== undefined) {
-      //       this.fabric.selection = this._prevSelection;
-      //       this._prevSelection = undefined;
-      //     }
-      //     e.preventDefault();
-      //     return false;
-      //   }
-      // }, false);
-
-      // // Aux click fires for non-primary buttons in some browsers
-      // domEl.addEventListener('auxclick', (e) => {
-      //   if (this.debugEvents) console.log('[dom] auxclick', { button: e.button, buttons: e.buttons, which: e.which });
-      //   if (isDomSecondary(e) && !this.isPanning) {
-      //     this.isPanning = true;
-      //     this.lastPosX = e.clientX;
-      //     this.lastPosY = e.clientY;
-      //     this.fabric.defaultCursor = 'grabbing';
-      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
-      //     this.fabric.skipTargetFind = true;
-      //     this._prevSelection = this.fabric.selection;
-      //     this.fabric.selection = false;
-      //     e.preventDefault();
-      //   }
-      // }, false);
-
-      // Pointer events (robust across devices)
-      // domEl.addEventListener('pointerdown', (e) => {
-      //   if (this.debugEvents) console.log('[dom] pointerdown', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
-      //   if (isDomSecondary(e)) {
-      //     this.isPanning = true;
-      //     this.lastPosX = e.clientX;
-      //     this.lastPosY = e.clientY;
-      //     this.fabric.defaultCursor = 'grabbing';
-      //     if (this.debugEvents) console.log('[drag] dom start panning (pointer)');
-      //     this._prevSkipTargetFind = this.fabric.skipTargetFind;
-      //     this.fabric.skipTargetFind = true;
-      //     this._prevSelection = this.fabric.selection;
-      //     this.fabric.selection = false;
-      //     // Capture pointer so we keep receiving events while panning
-      //     try { domEl.setPointerCapture && domEl.setPointerCapture(e.pointerId); } catch (_) {}
-      //     e.preventDefault();
-      //   }
-      // }, false);
-      // domEl.addEventListener('pointermove', (e) => {
-      //   if (this.debugEvents) console.log('[dom] pointermove', { x: e.clientX, y: e.clientY });
-      //   if (this.isPanning) {
-      //     const deltaX = e.clientX - this.lastPosX;
-      //     const deltaY = e.clientY - this.lastPosY;
-      //     if (this.debugEvents) console.log('[drag] dom move (pointer)', { deltaX, deltaY });
-      //     this.lastPosX = e.clientX;
-      //     this.lastPosY = e.clientY;
-      //     this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
-      //     if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
-      //     if (this.mapInstance) this.mapInstance.update();
-      //     this.emit('pan:move', { deltaX, deltaY });
-      //     e.preventDefault();
-      //   }
-      // }, false);
-      // domEl.addEventListener('pointerup', (e) => {
-      //   if (this.debugEvents) console.log('[dom] pointerup', { button: e.button, buttons: e.buttons, x: e.clientX, y: e.clientY });
-      //   if (this.isPanning) {
-      //     if (this.debugEvents) console.log('[drag] dom end panning (pointer)');
-      //     this.isPanning = false;
-      //     this.fabric.defaultCursor = 'default';
-      //     if (this.mapInstance) this.mapInstance.update();
-      //     this.emit('pan:completed');
-      //     if (this._prevSkipTargetFind !== undefined) {
-      //       this.fabric.skipTargetFind = this._prevSkipTargetFind;
-      //       this._prevSkipTargetFind = undefined;
-      //     }
-      //     if (this._prevSelection !== undefined) {
-      //       this.fabric.selection = this._prevSelection;
-      //       this._prevSelection = undefined;
-      //     }
-      //     try { domEl.releasePointerCapture && domEl.releasePointerCapture(e.pointerId); } catch (_) {}
-      //     e.preventDefault();
-      //   }
-      // }, false);
+      
     } else if (this.debugEvents) {
       console.warn('[dom] fabric canvas element not found for DOM listeners');
     }
@@ -555,22 +431,43 @@ export class Schematic extends Base {
     if (this.mapInstance) {
       // Calculate the new zoom level based on wheel direction
       const currentZoom = this.mapInstance.zoom;
-      const newZoom = direction > 0
-        ? currentZoom * zoomFactor
-        : currentZoom / zoomFactor;
-      
+      const newZoom = direction > 0 ? currentZoom * zoomFactor : currentZoom / zoomFactor;
       // Clamp the zoom level to the configured limits
-      const clampedZoom = Math.max(
-        this.mapInstance.minZoom,
-        Math.min(newZoom, this.mapInstance.maxZoom)
-      );
-      
-      // Apply the new zoom level to the Map instance
-      this.mapInstance.zoom = clampedZoom;
-      
-      // Update the map which will recalculate grid position based on current viewport
-      this.mapInstance.update();
-      
+      const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
+
+      // Apply zoom either around mouse position or center based on switch
+      if (this.zoomOnCenter) {
+        // Keep existing behavior: delegate to Map.update which zooms around center
+        this.mapInstance.zoom = clampedZoom;
+        this.mapInstance.update();
+      } else {
+        // Zoom around the mouse pointer without re-centering
+        this.mapInstance.zoom = clampedZoom;
+        // Determine the point on the canvas to zoom around (canvas-relative)
+        const el = this.fabric.getElement ? this.fabric.getElement() : (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl);
+        const rect = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { left: 0, top: 0 };
+        const px = opt.e.clientX - rect.left;
+        const py = opt.e.clientY - rect.top;
+        const point = new fabric.Point(px, py);
+        this.fabric.zoomToPoint(point, clampedZoom);
+
+        // Update grid viewport to reflect new transform (center of canvas in world coords)
+        const canvas = this.fabric;
+        const vpt = canvas.viewportTransform;
+        if (this.mapInstance.grid) {
+          if (vpt) {
+            const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+            const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+            this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: clampedZoom });
+          } else {
+            this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
+          }
+          this.mapInstance.grid.render();
+        }
+
+        if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+      }
+
       // Emit a zoom event with the new zoom level
       this.emit('zoom', { zoom: clampedZoom });
     }
@@ -582,16 +479,28 @@ export class Schematic extends Base {
     
     // Set a timeout for final update after zooming stops
     this.zoomDebounceTimeout = setTimeout(() => {
-      // Ensure grid is properly aligned after zoom completed
       if (this.mapInstance) {
-        // Use the map's update method which will correctly calculate the grid position
-        // based on the current viewport transform
-        this.mapInstance.update();
-        
+        if (this.zoomOnCenter) {
+          // Existing behavior: allow Map to perform its update
+          this.mapInstance.update();
+        } else {
+          // Recompute grid alignment based on current viewport without re-centering
+          const canvas = this.fabric;
+          const vpt = canvas.viewportTransform;
+          if (this.mapInstance.grid) {
+            if (vpt) {
+              const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+              const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+              this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
+            } else {
+              this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
+            }
+            this.mapInstance.grid.render();
+          }
+        }
         // Force a complete redraw to ensure everything is rendered properly
         this.fabric.requestRenderAll();
       }
-      
       // Fire an event that zooming has completed
       this.emit('zoom:completed', { zoom: this.mapInstance.zoom });
     }, this.zoomDebounceDelay);
