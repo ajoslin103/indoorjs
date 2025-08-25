@@ -107,6 +107,24 @@ export class Schematic extends Base {
   setOriginPin(pin = 'CENTER', margin = 0) {
     const canvas = this.fabric;
     if (!canvas) return;
+    // Track active pin settings
+    this.originPin = pin;
+    this.originPinMargin = margin;
+    // If a pan is in progress, cancel it when pinning becomes active
+    if (pin && pin !== 'NONE' && this.isPanning) {
+      if (this.debugEvents) console.log('[drag] cancel ongoing pan due to pin activation');
+      this.isPanning = false;
+      this.fabric.defaultCursor = 'default';
+      if (this._prevSkipTargetFind !== undefined) {
+        this.fabric.skipTargetFind = this._prevSkipTargetFind;
+        this._prevSkipTargetFind = undefined;
+      }
+      if (this._prevSelection !== undefined) {
+        this.fabric.selection = this._prevSelection;
+        this._prevSelection = undefined;
+      }
+      this.emit('pan:completed');
+    }
     const w = canvas.width, h = canvas.height;
     let x, y;
     switch (pin) {
@@ -296,6 +314,11 @@ export class Schematic extends Base {
       if (this.debugEvents) console.log('[fabric] mouse:down', { button: opt.e.button, which: opt.e.which, ctrlKey: !!opt.e.ctrlKey, x: opt.e.clientX, y: opt.e.clientY });
       // Check if it's a right-click / secondary click
       if (isSecondary(opt.e)) {
+        // Block panning while an origin pin is active
+        if (this.originPin && this.originPin !== 'NONE') {
+          if (this.debugEvents) console.log('[drag] pan blocked due to pinned origin', { originPin: this.originPin });
+          return;
+        }
         if (this.debugEvents) console.log('[drag] mouse:down', { button: opt.e.button, x: opt.e.clientX, y: opt.e.clientY });
         this.isPanning = true;
         this.lastPosX = opt.e.clientX;
