@@ -70,6 +70,67 @@ export class Schematic extends Base {
     }
   }
 
+  // Set the screen position of the world origin (0,0) and update grid
+  setOriginScreen(x, y) {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    const vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : [1, 0, 0, 1, 0, 0];
+    vpt[4] = x;
+    vpt[5] = y;
+    canvas.setViewportTransform(vpt);
+
+    // Update grid with viewport center in world coords (Y inverted for grid)
+    const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+    const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+    const gridCenterY = -centerY;
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
+      this.mapInstance.grid.render();
+    }
+    if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
+    if (typeof this.emit === 'function') this.emit('origin:change', { screen: { x, y } });
+  }
+
+  // Get the current screen position of world origin (0,0)
+  getOriginScreen() {
+    const canvas = this.fabric;
+    const vpt = canvas && canvas.viewportTransform;
+    return { x: vpt ? vpt[4] : (canvas ? canvas.width / 2 : 0), y: vpt ? vpt[5] : (canvas ? canvas.height / 2 : 0) };
+  }
+
+  // Pin origin to a viewport location with optional margin
+  // pin: 'NONE' | 'CENTER' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT'
+  setOriginPin(pin = 'CENTER', margin = 0) {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    const w = canvas.width, h = canvas.height;
+    let x, y;
+    switch (pin) {
+      case 'TOP_LEFT':
+        x = margin; y = margin; break;
+      case 'TOP_RIGHT':
+        x = w - margin; y = margin; break;
+      case 'BOTTOM_LEFT':
+        x = margin; y = h - margin; break;
+      case 'BOTTOM_RIGHT':
+        x = w - margin; y = h - margin; break;
+      case 'CENTER':
+        x = w / 2; y = h / 2; break;
+      case 'NONE':
+      default:
+        return; // no change
+    }
+    this.setOriginScreen(x, y);
+    if (typeof this.emit === 'function') this.emit('grid:change');
+  }
+
+  // Convenience to center the origin
+  setOriginToCenter() {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    this.setOriginScreen(canvas.width / 2, canvas.height / 2);
+  }
+
   /**
    * Add an event listener
    * @param {string} eventName - Name of the event to listen for
@@ -504,7 +565,8 @@ export class Schematic extends Base {
             if (vpt) {
               const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
               const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-              this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
+              const gridCenterY = -centerY;
+              this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
             } else {
               this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
             }

@@ -95,9 +95,16 @@
           schematic.resetView();
         });
 
-        // Get pin settings from UI
-        // Pin select and margin are no longer used since setOriginPin and setPinMargin methods don't exist
-        // Keeping the UI elements for visual consistency but not adding functionality
+        // Wire up Pin Origin and Pin Margin controls to set grid origin
+        const pinSelect = document.getElementById('pinSelect');
+        const pinMarginInput = document.getElementById('pinMarginInput');
+        const applyPin = () => {
+          const pin = pinSelect?.value || 'NONE';
+          const margin = Math.max(0, Number(pinMarginInput?.value) || 0);
+          schematic.setOriginPin(pin, margin);
+        };
+        pinSelect?.addEventListener('change', applyPin);
+        pinMarginInput?.addEventListener('change', applyPin);
         
         // Set initial parameters using Schematic methods
         schematic.setZoom(1.0);
@@ -176,7 +183,8 @@
           updateUIDisplay();
         });
         
-        // Call the update manually once
+        // Initialize pin settings and update UI once
+        applyPin();
         updateUIDisplay();
         
         // Add button for manual UI refresh
