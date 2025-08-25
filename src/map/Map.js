@@ -161,11 +161,10 @@ export class Map extends Base {
       const vpt = canvas.viewportTransform;
       
       if (vpt) {
-        // Calculate the center point based on viewport transform
-        // This converts from screen space to world space coordinates
-        const centerX = -vpt[4] / vpt[0];
-        const centerY = -vpt[5] / vpt[3];
-        
+        // Calculate the viewport center in world coordinates
+        const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+        const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+
         // Update the grid with the calculated world coordinates
         this.grid.updateViewport({
           x: centerX,
