@@ -79,13 +79,17 @@ export class Schematic extends Base {
     vpt[5] = y;
     canvas.setViewportTransform(vpt);
 
-    // Update grid with viewport center in world coords (Y inverted for grid)
+    // Update grid state with viewport center in world coords (Y inverted for grid)
+    // Do NOT render the grid here; let Fabric's 'before:render' hook draw it underneath objects
     const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
     const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
     const gridCenterY = -centerY;
     if (this.mapInstance && this.mapInstance.grid) {
       this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
-      this.mapInstance.grid.render();
+    }
+    // Trigger Map's standard update pipeline so grid renders under objects
+    if (this.mapInstance && typeof this.mapInstance.update === 'function') {
+      this.mapInstance.update();
     }
     if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
     if (typeof this.emit === 'function') this.emit('origin:change', { screen: { x, y } });
