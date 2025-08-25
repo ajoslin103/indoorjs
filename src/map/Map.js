@@ -33,7 +33,9 @@ export class Map extends Base {
     // create the fabric Canvas
     this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
-      renderOnAddRemove: true
+      renderOnAddRemove: true,
+      fireRightClick: true, // allow right-click events to flow through Fabric
+      stopContextMenu: true // prevent default context menu to keep drag uninterrupted
     });
     this.context = this.fabric.getContext('2d');
 
