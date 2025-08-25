@@ -57,6 +57,9 @@ export class Map extends Base {
       this.addGrid();
     }
 
+    // Enable snapping of object move/resize to integer values
+    this._registerSnapping();
+
   }
 
   addGrid(gridControl) {
@@ -200,4 +203,47 @@ export class Map extends Base {
 export const map = (container, options) => {
   const mapInstance = new Map(container, options);
   return mapInstance.fabric;
+};
+
+// Private helpers on the prototype to keep constructor lean
+Map.prototype._registerSnapping = function _registerSnapping() {
+  const canvas = this.fabric;
+  if (!canvas) return;
+
+  const round = (v) => Math.round(v);
+
+  // Snap position while dragging
+  canvas.on('object:moving', (e) => {
+    const t = e?.target;
+    if (!t) return;
+    // Round left/top to integers
+    t.set({
+      left: round(t.left || 0),
+      top: round(t.top || 0)
+    });
+    t.setCoords();
+  });
+
+  // Snap effective size while scaling
+  canvas.on('object:scaling', (e) => {
+    const t = e?.target;
+    if (!t) return;
+    const baseW = t.width || 0;
+    const baseH = t.height || 0;
+    if (baseW > 0 && baseH > 0) {
+      const newW = Math.max(1, round(baseW * (t.scaleX || 1)));
+      const newH = Math.max(1, round(baseH * (t.scaleY || 1)));
+      // Convert back to scale factors so Fabric maintains control handles correctly
+      t.set({
+        scaleX: newW / baseW,
+        scaleY: newH / baseH
+      });
+    }
+    // Also align position to integers to avoid subpixel jitter
+    t.set({
+      left: round(t.left || 0),
+      top: round(t.top || 0)
+    });
+    t.setCoords();
+  });
 };
