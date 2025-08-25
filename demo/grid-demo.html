@@ -170,12 +170,26 @@
             document.getElementById('zoomLevel').textContent = zoomLevel;
           }
           
-          // Update coordinates display (static for now)
-          if (document.getElementById('coordinates')) {
-            // We could update this with dynamic coordinates if needed
-            document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
-          }
+          // Coordinates are updated live from mouse:move
         }
+
+        // Live update: mouse position in grid/world coordinates
+        fabricCanvas.on('mouse:move', (opt) => {
+          const el = (fabricCanvas.getElement && fabricCanvas.getElement()) || fabricCanvas.upperCanvasEl || fabricCanvas.lowerCanvasEl;
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const px = opt.e.clientX - rect.left;
+          const py = opt.e.clientY - rect.top;
+          const vpt = fabricCanvas.viewportTransform;
+          if (!vpt) return;
+          const worldX = (px - vpt[4]) / vpt[0];
+          const worldY = (py - vpt[5]) / vpt[3];
+          const gridY = -worldY; // grid uses inverted Y
+          const coordsEl = document.getElementById('coordinates');
+          if (coordsEl) {
+            coordsEl.textContent = `X: ${worldX.toFixed(2)}, Y: ${gridY.toFixed(2)}`;
+          }
+        });
         
         // Also listen for grid control changes
         schematic.on('grid:change', () => {
