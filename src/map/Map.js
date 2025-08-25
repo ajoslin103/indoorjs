@@ -156,6 +156,10 @@ export class Map extends Base {
   update() {
     const canvas = this.fabric;
     
+    // Always clamp zoom to bounds, even if set directly elsewhere
+    const z = clamp(this.zoom, this.minZoom, this.maxZoom);
+    if (z !== this.zoom) this.zoom = z;
+
     // First apply the zoom to the center of the canvas
     const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
     canvas.zoomToPoint(centerPoint, this.zoom);
@@ -191,7 +195,7 @@ export class Map extends Base {
     }
 
     const now = Date.now();
-    if (!this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
+    if (this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
       return;
     }
     this.lastUpdatedTime = now;
