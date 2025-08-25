@@ -561,13 +561,24 @@ export class Schematic extends Base {
       // Clamp the zoom level to the configured limits
       const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
 
-      // Apply zoom around the grid origin (world 0,0) regardless of mode
+      // Apply zoom
+      // If Alt/Option is held, zoom around the mouse position to keep it stationary.
+      // Otherwise, preserve existing behavior (anchor at screen position of world origin).
       this.mapInstance.zoom = clampedZoom;
       const canvas = this.fabric;
       const vptBefore = canvas.viewportTransform;
-      const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
-      const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
-      const point = new fabric.Point(originScreenX, originScreenY);
+      let point;
+      if (opt.e.altKey) {
+        const el = (canvas.getElement && canvas.getElement()) || canvas.upperCanvasEl || canvas.lowerCanvasEl;
+        const rect = el.getBoundingClientRect();
+        const px = opt.e.clientX - rect.left;
+        const py = opt.e.clientY - rect.top;
+        point = new fabric.Point(px, py);
+      } else {
+        const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
+        const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
+        point = new fabric.Point(originScreenX, originScreenY);
+      }
       canvas.zoomToPoint(point, clampedZoom);
 
       // Update grid viewport to reflect new transform (viewport center in world coords)
@@ -586,8 +597,9 @@ export class Schematic extends Base {
 
       if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
 
-      // Emit a zoom event with the new zoom level
+      // Emit zoom events so UIs can update immediately
       this.emit('zoom', { zoom: clampedZoom });
+      this.emit('zoom:change', { zoom: clampedZoom });
     }
     
     // Clear any existing timeout to reset debounce timer
