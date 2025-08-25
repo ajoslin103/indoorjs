@@ -32,15 +32,15 @@ export class Schematic extends Base {
     this.fabric = mapInstance.fabric;
     this.mapInstance = mapInstance; // Store reference to map instance
     
-    // Ensure initial grid alignment matches objects (use canvas center in world coords)
+    // Ensure initial grid alignment matches Fabric's centered origin (use viewport center in world coords)
     if (this.mapInstance && this.mapInstance.grid && this.fabric) {
       const alignInitialGrid = () => {
         const canvas = this.fabric;
         const vpt = canvas.viewportTransform;
         if (vpt) {
-          const leftX = -vpt[4] / vpt[0];
-          const topY = -vpt[5] / vpt[3];
-          this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: this.mapInstance.zoom });
+          const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+          const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+          this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
         } else {
           this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
         }
@@ -455,38 +455,29 @@ export class Schematic extends Base {
       // Clamp the zoom level to the configured limits
       const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
 
-      // Apply zoom either around mouse position or center based on switch
-      if (this.zoomOnCenter) {
-        // Keep existing behavior: delegate to Map.update which zooms around center
-        this.mapInstance.zoom = clampedZoom;
-        this.mapInstance.update();
-      } else {
-        // Zoom around the mouse pointer without re-centering
-        this.mapInstance.zoom = clampedZoom;
-        // Determine the point on the canvas to zoom around (canvas-relative)
-        const el = this.fabric.getElement ? this.fabric.getElement() : (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl);
-        const rect = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { left: 0, top: 0 };
-        const px = opt.e.clientX - rect.left;
-        const py = opt.e.clientY - rect.top;
-        const point = new fabric.Point(px, py);
-        this.fabric.zoomToPoint(point, clampedZoom);
+      // Apply zoom around the grid origin (world 0,0) regardless of mode
+      this.mapInstance.zoom = clampedZoom;
+      const canvas = this.fabric;
+      const vptBefore = canvas.viewportTransform;
+      const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
+      const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
+      const point = new fabric.Point(originScreenX, originScreenY);
+      canvas.zoomToPoint(point, clampedZoom);
 
-        // Update grid viewport to reflect new transform (viewport top-left in world coords)
-        const canvas = this.fabric;
-        const vpt = canvas.viewportTransform;
-        if (this.mapInstance.grid) {
-          if (vpt) {
-            const leftX = -vpt[4] / vpt[0];
-            const topY = -vpt[5] / vpt[3];
-            this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: clampedZoom });
-          } else {
-            this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
-          }
-          this.mapInstance.grid.render();
+      // Update grid viewport to reflect new transform (viewport center in world coords)
+      const vptAfter = canvas.viewportTransform;
+      if (this.mapInstance.grid) {
+        if (vptAfter) {
+          const centerX = (canvas.width / 2 - vptAfter[4]) / vptAfter[0];
+          const centerY = (canvas.height / 2 - vptAfter[5]) / vptAfter[3];
+          this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: clampedZoom });
+        } else {
+          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
         }
-
-        if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+        this.mapInstance.grid.render();
       }
+
+      if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
 
       // Emit a zoom event with the new zoom level
       this.emit('zoom', { zoom: clampedZoom });
@@ -509,9 +500,9 @@ export class Schematic extends Base {
           const vpt = canvas.viewportTransform;
           if (this.mapInstance.grid) {
             if (vpt) {
-              const leftX = -vpt[4] / vpt[0];
-              const topY = -vpt[5] / vpt[3];
-              this.mapInstance.grid.updateViewport({ x: leftX, y: topY, zoom: this.mapInstance.zoom });
+              const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+              const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+              this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
             } else {
               this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
             }
