@@ -70,6 +70,89 @@ export class Schematic extends Base {
     }
   }
 
+  // Set the screen position of the world origin (0,0) and update grid
+  setOriginScreen(x, y) {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    const vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : [1, 0, 0, 1, 0, 0];
+    vpt[4] = x;
+    vpt[5] = y;
+    canvas.setViewportTransform(vpt);
+
+    // Update grid state with viewport center in world coords (Y inverted for grid)
+    // Do NOT render the grid here; let Fabric's 'before:render' hook draw it underneath objects
+    const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+    const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+    const gridCenterY = -centerY;
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
+    }
+    // Trigger Map's standard update pipeline so grid renders under objects
+    if (this.mapInstance && typeof this.mapInstance.update === 'function') {
+      this.mapInstance.update();
+    }
+    if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
+    if (typeof this.emit === 'function') this.emit('origin:change', { screen: { x, y } });
+  }
+
+  // Get the current screen position of world origin (0,0)
+  getOriginScreen() {
+    const canvas = this.fabric;
+    const vpt = canvas && canvas.viewportTransform;
+    return { x: vpt ? vpt[4] : (canvas ? canvas.width / 2 : 0), y: vpt ? vpt[5] : (canvas ? canvas.height / 2 : 0) };
+  }
+
+  // Pin origin to a viewport location with optional margin
+  // pin: 'NONE' | 'CENTER' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT'
+  setOriginPin(pin = 'CENTER', margin = 0) {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    // Track active pin settings
+    this.originPin = pin;
+    this.originPinMargin = margin;
+    // If a pan is in progress, cancel it when pinning becomes active
+    if (pin && pin !== 'NONE' && this.isPanning) {
+      if (this.debugEvents) console.log('[drag] cancel ongoing pan due to pin activation');
+      this.isPanning = false;
+      this.fabric.defaultCursor = 'default';
+      if (this._prevSkipTargetFind !== undefined) {
+        this.fabric.skipTargetFind = this._prevSkipTargetFind;
+        this._prevSkipTargetFind = undefined;
+      }
+      if (this._prevSelection !== undefined) {
+        this.fabric.selection = this._prevSelection;
+        this._prevSelection = undefined;
+      }
+      this.emit('pan:completed');
+    }
+    const w = canvas.width, h = canvas.height;
+    let x, y;
+    switch (pin) {
+      case 'TOP_LEFT':
+        x = margin; y = margin; break;
+      case 'TOP_RIGHT':
+        x = w - margin; y = margin; break;
+      case 'BOTTOM_LEFT':
+        x = margin; y = h - margin; break;
+      case 'BOTTOM_RIGHT':
+        x = w - margin; y = h - margin; break;
+      case 'CENTER':
+        x = w / 2; y = h / 2; break;
+      case 'NONE':
+      default:
+        return; // no change
+    }
+    this.setOriginScreen(x, y);
+    if (typeof this.emit === 'function') this.emit('grid:change');
+  }
+
+  // Convenience to center the origin
+  setOriginToCenter() {
+    const canvas = this.fabric;
+    if (!canvas) return;
+    this.setOriginScreen(canvas.width / 2, canvas.height / 2);
+  }
+
   /**
    * Add an event listener
    * @param {string} eventName - Name of the event to listen for
@@ -231,6 +314,11 @@ export class Schematic extends Base {
       if (this.debugEvents) console.log('[fabric] mouse:down', { button: opt.e.button, which: opt.e.which, ctrlKey: !!opt.e.ctrlKey, x: opt.e.clientX, y: opt.e.clientY });
       // Check if it's a right-click / secondary click
       if (isSecondary(opt.e)) {
+        // Block panning while an origin pin is active
+        if (this.originPin && this.originPin !== 'NONE') {
+          if (this.debugEvents) console.log('[drag] pan blocked due to pinned origin', { originPin: this.originPin });
+          return;
+        }
         if (this.debugEvents) console.log('[drag] mouse:down', { button: opt.e.button, x: opt.e.clientX, y: opt.e.clientY });
         this.isPanning = true;
         this.lastPosX = opt.e.clientX;
@@ -504,7 +592,8 @@ export class Schematic extends Base {
             if (vpt) {
               const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
               const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-              this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
+              const gridCenterY = -centerY;
+              this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
             } else {
               this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
             }
