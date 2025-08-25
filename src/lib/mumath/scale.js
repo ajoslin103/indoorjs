@@ -5,7 +5,7 @@
  */
 'use strict';
 
-import lg from './log10';
+import lg from './log10.js';
 
 export default function (minStep, srcSteps) {
 	var power = Math.floor(lg(minStep));

@@ -12,8 +12,8 @@
  */
 'use strict';
 
-import almost from './almost';
-import norm from './normalize';
+import almost from './almost.js';
+import norm from './normalize.js';
 
 export default function (n, eps) {
 	n = norm(n);

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Demo</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #canvas-container { border: 1px solid #ccc; margin: 20px 0; width: 800px; height: 600px; background: #f8f9fa; }
+        .controls { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
+        #coordinates { margin-left: 20px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Grid Demo</h1>
+    <div class="controls">
+        <label style="margin-right:10px;">
+          Min Zoom: <input id="minZoomInput" type="number" step="0.01" value="0.05" style="width:70px;">
+        </label>
+        <label style="margin-right:10px;">
+          Max Zoom: <input id="maxZoomInput" type="number" step="0.01" value="20" style="width:70px;">
+        </label>
+        <button id="resetView">Reset View</button>
+        <br><br>
+        <label style="margin-right:10px;">
+          Pin Origin: 
+          <select id="pinSelect" style="width:100px;">
+            <option selected value="NONE">None</option>
+            <option value="TOP_LEFT">Top Left</option>
+            <option value="TOP_RIGHT">Top Right</option>
+            <option value="BOTTOM_LEFT">Bottom Left</option>
+            <option value="BOTTOM_RIGHT">Bottom Right</option>
+          </select>
+        </label>
+        <label style="margin-right:10px;">
+          Pin Margin: <input id="pinMarginInput" type="number" step="1" value="10" style="width:70px;">
+        </label>
+        <br><br>
+        <span id="coordinates">X: 0, Y: 0</span>
+        <span id="zoomLevel" style="margin-left: 20px; font-family: monospace;">Zoom: 1.00x</span>
+    </div>
+    <div id="canvas-container"></div>
+    <!-- Load Fabric.js v6 (browser UMD) from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
+
+    <!-- Load EventEmitter2 from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+    
+    <!-- Direct module imports -->
+    <script type="module">
+      import Grid from '../src/grid/Grid.js';
+      import { Schematic } from '../src/core/Schematic.js';
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('canvas-container');
+        
+        // Initialize schematic with grid enabled
+        const schematic = new Schematic(container, {
+          width: 800,
+          height: 600,
+          showGrid: true, // Grid will be enabled by default
+          zoomDebounceDelay: 200 // Configure the zoom debounce delay
+        });
+        
+        // Get the fabric instance from the schematic
+        const fabricCanvas = schematic.fabric;
+        // Access the global fabric object from Fabric.js loaded via CDN
+        const fabric = window.fabric;
+        // Get the map instance from the schematic
+        const mapFabric = schematic.mapInstance;
+        
+        // Listen for pan events from Schematic
+        schematic.on('pan:move', (data) => {
+          // Could update UI here if needed
+        });
+        
+        schematic.on('pan:completed', () => {
+          // Could perform actions when panning completes
+          console.log('Panning completed');
+        });
+        
+        // Listen for zoom events from Schematic
+        schematic.on('zoom:change', (data) => {
+          updateUIDisplay();
+        });
+        
+        schematic.on('zoom:completed', (data) => {
+          console.log('Zoom completed - final grid alignment done');
+        });
+
+        // Initialize controls with Schematic methods
+        document.getElementById('resetView')?.addEventListener('click', () => {
+          // Reset view using Schematic's resetView method
+          schematic.resetView();
+        });
+
+        // Get pin settings from UI
+        // Pin select and margin are no longer used since setOriginPin and setPinMargin methods don't exist
+        // Keeping the UI elements for visual consistency but not adding functionality
+        
+        // Set initial parameters using Schematic methods
+        schematic.setZoom(1.0);
+
+        const minZoom = document.getElementById('minZoomInput');
+        const maxZoom = document.getElementById('maxZoomInput');
+        const updateZoom = () => {
+          const min = Math.max(0.01, Number(minZoom.value) || 0.01);
+          const max = Math.max(min + 0.01, Number(maxZoom.value) || 20);
+          
+          // Update zoom limits using Schematic's method
+          schematic.setZoomLimits(min, max);
+          
+          // Set current zoom to ensure it's within limits
+          const currentZoom = mapFabric.zoom || 1.0;
+          schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
+        };
+        
+        // Add event listeners for zoom controls
+        minZoom?.addEventListener('change', updateZoom);
+        maxZoom?.addEventListener('change', updateZoom);
+        
+        // Initial zoom setup
+        updateZoom();
+
+        // Add sample content to demonstrate the library using Schematic's API
+        const circle = new fabric.Circle({
+          left: 0,
+          top: 0,
+          radius: 50,
+          fill: '#f8f8f8',
+          stroke: '#999',
+          strokeWidth: 1,
+          selectable: true,
+          originX: 'center',
+          originY: 'center'
+        });
+        
+        // Add the object through Schematic
+        fabricCanvas.add(circle);
+        
+        // Add another object to verify objects are being added correctly
+        const rect = new fabric.Rect({
+          left: 100,
+          top: 100,
+          width: 80,
+          height: 60,
+          fill: '#ddf',
+          stroke: '#99c',
+          strokeWidth: 2,
+          selectable: true,
+          originX: 'center',
+          originY: 'center'
+        });
+        
+        fabricCanvas.add(rect);
+        
+        // Custom display update function that works with Schematic
+        function updateUIDisplay() {
+          // Update zoom level display
+          if (document.getElementById('zoomLevel')) {
+            const zoomLevel = `Zoom: ${mapFabric.zoom ? mapFabric.zoom.toFixed(2) : '1.00'}x`;
+            document.getElementById('zoomLevel').textContent = zoomLevel;
+          }
+          
+          // Update coordinates display (static for now)
+          if (document.getElementById('coordinates')) {
+            // We could update this with dynamic coordinates if needed
+            document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
+          }
+        }
+        
+        // Also listen for grid control changes
+        schematic.on('grid:change', () => {
+          console.log('Grid settings changed');
+          updateUIDisplay();
+        });
+        
+        // Call the update manually once
+        updateUIDisplay();
+        
+        // Add button for manual UI refresh
+        const refreshButton = document.createElement('button');
+        refreshButton.textContent = 'Refresh UI';
+        refreshButton.addEventListener('click', () => {
+          updateUIDisplay();
+        });
+        document.querySelector('.controls').appendChild(refreshButton);
+        
+        // Add info about wheel zoom
+        const zoomInfoSpan = document.createElement('span');
+        zoomInfoSpan.textContent = ' Use mouse wheel to zoom in/out';
+        zoomInfoSpan.style.marginLeft = '10px';
+        zoomInfoSpan.style.fontStyle = 'italic';
+        document.querySelector('.controls').appendChild(zoomInfoSpan);
+        
+        // Add info about right-click panning
+        const panInfoSpan = document.createElement('span');
+        panInfoSpan.textContent = ' Right-click + drag to pan';
+        panInfoSpan.style.marginLeft = '10px';
+        panInfoSpan.style.fontStyle = 'italic';
+        document.querySelector('.controls').appendChild(panInfoSpan);
+      });
+    </script>
+</body>
+</html>
