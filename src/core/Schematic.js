@@ -40,7 +40,8 @@ export class Schematic extends Base {
         if (vpt) {
           const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
           const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-          this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: this.mapInstance.zoom });
+          const gridCenterY = -centerY;
+          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: this.mapInstance.zoom });
         } else {
           this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: this.mapInstance.zoom });
         }
@@ -470,7 +471,8 @@ export class Schematic extends Base {
         if (vptAfter) {
           const centerX = (canvas.width / 2 - vptAfter[4]) / vptAfter[0];
           const centerY = (canvas.height / 2 - vptAfter[5]) / vptAfter[3];
-          this.mapInstance.grid.updateViewport({ x: centerX, y: centerY, zoom: clampedZoom });
+          const gridCenterY = -centerY;
+          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: clampedZoom });
         } else {
           this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
         }

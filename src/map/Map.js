@@ -164,11 +164,12 @@ export class Map extends Base {
         // Calculate the viewport center in world coordinates
         const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
         const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+        const gridCenterY = -centerY;
 
         // Update the grid with the calculated world coordinates
         this.grid.updateViewport({
           x: centerX,
-          y: centerY,
+          y: gridCenterY,
           zoom: this.zoom
         });
       } else {
