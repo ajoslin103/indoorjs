@@ -60,6 +60,20 @@
         <br><br>
         <span id="coordinates">X: 0, Y: 0</span>
         <span id="zoomLevel" style="margin-left: 20px; font-family: monospace;">Zoom: 1.00x</span>
+        <div style="margin-top:10px;">
+          <label style="margin-right:15px;">
+            <input type="checkbox" id="toggleGrid" checked>
+            Show Grid
+          </label>
+          <label style="margin-right:15px;">
+            <input type="checkbox" id="toggleZoomOnOrigin" checked>
+            Zoom on Origin
+          </label>
+          <label>
+            <input type="checkbox" id="toggleScrollbars">
+            Use Scrollbars (disable drag pan)
+          </label>
+        </div>
     </div>
     <div id="canvas-container"></div>
     <!-- Load Fabric.js v6 (browser UMD) from CDN -->
