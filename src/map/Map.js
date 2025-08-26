@@ -22,7 +22,7 @@ export class Map extends Base {
 
     const canvas = document.createElement('canvas');
     this.container.appendChild(canvas);
-    canvas.setAttribute('id', 'indoors-map-canvas');
+    canvas.setAttribute('id', 'schematic-canvas');
 
     canvas.width = this.width || this.container.clientWidth;
     canvas.height = this.height || this.container.clientHeight;

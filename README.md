@@ -50,7 +50,7 @@ The Fabric.js canvas does what it does — see their docs for details. The Fabri
 - Bundles: CommonJS, ESM, UMD (`dist/`)
 
 ```bash
-npm install indoorjs-core fabric
+npm install schematic-core fabric
 ```
 
 ## Quick start
@@ -84,7 +84,7 @@ fabricCanvas.add(circle);
 ### Using the packaged Map
 
 ```javascript
-import { Map } from 'indoorjs-core';
+import { Map } from 'schematic-core';
 
 const container = document.getElementById('canvas-container');
 const map = new Map(container, { showGrid: true });
@@ -120,7 +120,7 @@ fabricCanvas.add(circle);
 ## Development
 
 - Demo: `npm run dev` (serves `demo/grid-demo.html` with live-reload)
-- Build: `npm run build` (outputs `dist/indoor.*.js` via Rollup)
+- Build: `npm run build` (outputs `dist/schematic.*.js` via Rollup)
 - Entry: `src/map/Map.js`; public wrappers: `src/core/Schematic.js`
 
 ## Notes

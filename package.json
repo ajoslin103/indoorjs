@@ -1,11 +1,11 @@
 {
-  "name": "indoorjs-core",
+  "name": "schematic-core",
   "version": "1.0.0",
   "description": "Barebones non-reactive canvas indoor mapping",
   "type": "module",
-  "main": "dist/indoor.cjs.js",
-  "module": "dist/indoor.esm.js",
-  "browser": "dist/indoor.umd.js",
+  "main": "dist/schematic.cjs.js",
+  "module": "dist/schematic.esm.js",
+  "browser": "dist/schematic.umd.js",
   "peerDependencies": {
     "fabric": "^6.0.0"
   },
