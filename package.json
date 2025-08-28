@@ -1,7 +1,7 @@
 {
-  "name": "schematic-core",
+  "name": "schematic",
   "version": "1.0.0",
-  "description": "Barebones non-reactive canvas indoor mapping",
+  "description": "Barebones non-reactive canvas schematics",
   "type": "module",
   "main": "dist/schematic.cjs.js",
   "module": "dist/schematic.esm.js",
