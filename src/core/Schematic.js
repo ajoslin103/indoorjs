@@ -13,7 +13,9 @@ export class Schematic extends Base {
     this.defaults = {
       showGrid: true,
       // Control whether zoom is applied around viewport center (true) or mouse position (false)
-      zoomOnCenter: false
+      zoomOnCenter: false,
+      // Persisted UI hint: whether to show native scrollbars. No behavior yet.
+      showScrollbars: false
     };
 
     // set defaults
@@ -68,6 +70,19 @@ export class Schematic extends Base {
     if (options?.interactions !== false) {
       this.registerEventListeners();
     }
+  }
+
+  // Persist a UI preference for showing native scrollbars.
+  // This does not implement any behavior yet; it only logs and emits an event.
+  setShowScrollbars(enabled) {
+    const next = !!enabled;
+    if (this.showScrollbars === next) return this;
+    this.showScrollbars = next;
+    try {
+      console.log('[schematic] showScrollbars changed:', this.showScrollbars);
+    } catch {}
+    this.emit && this.emit('scrollbars:change', { enabled: this.showScrollbars });
+    return this;
   }
 
   // Set the screen position of the world origin (0,0) and update grid
