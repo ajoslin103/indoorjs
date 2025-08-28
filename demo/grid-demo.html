@@ -71,7 +71,7 @@
           </label>
           <label>
             <input type="checkbox" id="toggleScrollbars">
-            Use Scrollbars (disable drag pan)
+            Show Scrollbars
           </label>
         </div>
     </div>
@@ -181,6 +181,18 @@
         
         // Initial zoom setup
         updateZoom();
+
+        // Persist-only: wire Show Scrollbars to schematic (no behavior)
+        const toggleScrollbars = document.getElementById('toggleScrollbars');
+        const syncScrollbarsPref = () => {
+          const checked = !!toggleScrollbars?.checked;
+          if (typeof schematic.setShowScrollbars === 'function') {
+            schematic.setShowScrollbars(checked);
+          }
+        };
+        toggleScrollbars?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
 
         // Add sample content to demonstrate the library using Schematic's API
         const circle = new fabric.Circle({
