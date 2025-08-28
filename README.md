@@ -50,7 +50,7 @@ The Fabric.js canvas does what it does — see their docs for details. The Fabri
 - Bundles: CommonJS, ESM, UMD (`dist/`)
 
 ```bash
-npm install schematic-core fabric
+npm install schematic fabric
 ```
 
 ## Quick start
@@ -84,7 +84,7 @@ fabricCanvas.add(circle);
 ### Using the packaged Map
 
 ```javascript
-import { Map } from 'schematic-core';
+import { Map } from 'schematic';
 
 const container = document.getElementById('canvas-container');
 const map = new Map(container, { showGrid: true });
