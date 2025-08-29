@@ -1,4 +1,5 @@
 import { Point } from '../geometry/Point.js';
+import fabric from '../lib/fabric-import.js';
 
 export const Modes = {
   SELECT: 'SELECT',

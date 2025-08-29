@@ -1,3 +1,5 @@
+import { fabric } from 'fabric';
+
 class Base {
   constructor(options) {
     this._options = options || {};
