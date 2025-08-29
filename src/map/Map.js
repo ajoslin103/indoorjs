@@ -1,4 +1,5 @@
 import { clamp } from '../lib/mumath/index.js';
+import fabric from '../lib/fabric-import.js';
 
 import Base from '../core/Base.js';
 import { MAP, Modes, initializeFabric } from '../core/Constants.js';
