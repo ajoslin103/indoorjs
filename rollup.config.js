@@ -2,7 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 
 export default [
   {
-    input: 'src/map/Map.js',
+    input: 'src/index.js',
     output: [
       { file: 'dist/schematic.cjs.js', format: 'cjs' },
       { file: 'dist/schematic.esm.js', format: 'esm' },
