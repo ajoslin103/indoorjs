@@ -1,4 +1,5 @@
 import { clamp } from '../lib/mumath/index.js';
+import fabric from '../lib/fabric-import.js';
 
 import Base from '../core/Base.js';
 import { MAP, Modes, initializeFabric } from '../core/Constants.js';
@@ -22,7 +23,7 @@ export class Map extends Base {
 
     const canvas = document.createElement('canvas');
     this.container.appendChild(canvas);
-    canvas.setAttribute('id', 'indoors-map-canvas');
+    canvas.setAttribute('id', 'schematic-canvas');
 
     canvas.width = this.width || this.container.clientWidth;
     canvas.height = this.height || this.container.clientHeight;
@@ -33,7 +34,9 @@ export class Map extends Base {
     // create the fabric Canvas
     this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
-      renderOnAddRemove: true
+      renderOnAddRemove: true,
+      fireRightClick: true, // allow right-click events to flow through Fabric
+      stopContextMenu: true // prevent default context menu to keep drag uninterrupted
     });
     this.context = this.fabric.getContext('2d');
 
@@ -54,6 +57,9 @@ export class Map extends Base {
     if (this.showGrid) {
       this.addGrid();
     }
+
+    // Enable snapping of object move/resize to integer values
+    this._registerSnapping();
 
   }
 
@@ -151,6 +157,10 @@ export class Map extends Base {
   update() {
     const canvas = this.fabric;
     
+    // Always clamp zoom to bounds, even if set directly elsewhere
+    const z = clamp(this.zoom, this.minZoom, this.maxZoom);
+    if (z !== this.zoom) this.zoom = z;
+
     // First apply the zoom to the center of the canvas
     const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
     canvas.zoomToPoint(centerPoint, this.zoom);
@@ -186,7 +196,7 @@ export class Map extends Base {
     }
 
     const now = Date.now();
-    if (!this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
+    if (this.lastUpdatedTime && Math.abs(this.lastUpdatedTime - now) < 100) {
       return;
     }
     this.lastUpdatedTime = now;
@@ -198,4 +208,47 @@ export class Map extends Base {
 export const map = (container, options) => {
   const mapInstance = new Map(container, options);
   return mapInstance.fabric;
+};
+
+// Private helpers on the prototype to keep constructor lean
+Map.prototype._registerSnapping = function _registerSnapping() {
+  const canvas = this.fabric;
+  if (!canvas) return;
+
+  const round = (v) => Math.round(v);
+
+  // Snap position while dragging
+  canvas.on('object:moving', (e) => {
+    const t = e?.target;
+    if (!t) return;
+    // Round left/top to integers
+    t.set({
+      left: round(t.left || 0),
+      top: round(t.top || 0)
+    });
+    t.setCoords();
+  });
+
+  // Snap effective size while scaling
+  canvas.on('object:scaling', (e) => {
+    const t = e?.target;
+    if (!t) return;
+    const baseW = t.width || 0;
+    const baseH = t.height || 0;
+    if (baseW > 0 && baseH > 0) {
+      const newW = Math.max(1, round(baseW * (t.scaleX || 1)));
+      const newH = Math.max(1, round(baseH * (t.scaleY || 1)));
+      // Convert back to scale factors so Fabric maintains control handles correctly
+      t.set({
+        scaleX: newW / baseW,
+        scaleY: newH / baseH
+      });
+    }
+    // Also align position to integers to avoid subpixel jitter
+    t.set({
+      left: round(t.left || 0),
+      top: round(t.top || 0)
+    });
+    t.setCoords();
+  });
 };

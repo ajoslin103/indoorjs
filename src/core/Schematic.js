@@ -1,5 +1,6 @@
 import Base from './Base.js';
 import { Map } from '../map/Map.js';
+import fabric from '../lib/fabric-import.js';
 
 /**
  * Schematic class for handling event subscriptions and emissions
@@ -13,7 +14,9 @@ export class Schematic extends Base {
     this.defaults = {
       showGrid: true,
       // Control whether zoom is applied around viewport center (true) or mouse position (false)
-      zoomOnCenter: false
+      zoomOnCenter: false,
+      // Persisted UI hint: whether to show native scrollbars. No behavior yet.
+      showScrollbars: false
     };
 
     // set defaults
@@ -68,6 +71,19 @@ export class Schematic extends Base {
     if (options?.interactions !== false) {
       this.registerEventListeners();
     }
+  }
+
+  // Persist a UI preference for showing native scrollbars.
+  // This does not implement any behavior yet; it only logs and emits an event.
+  setShowScrollbars(enabled) {
+    const next = !!enabled;
+    if (this.showScrollbars === next) return this;
+    this.showScrollbars = next;
+    try {
+      console.log('[schematic] showScrollbars changed:', this.showScrollbars);
+    } catch {}
+    this.emit && this.emit('scrollbars:change', { enabled: this.showScrollbars });
+    return this;
   }
 
   // Set the screen position of the world origin (0,0) and update grid
@@ -306,12 +322,23 @@ export class Schematic extends Base {
 
     const isSecondary = (e) => e && (
       e.button === 2 || // standard right click
+      e.buttons === 2 || // two-finger/right-click may report via buttons mask
       e.which === 3  || // some browsers
       (e.ctrlKey && e.button === 0) // ctrl+left on macOS
     );
 
     this.fabric.on('mouse:down', (opt) => {
-      if (this.debugEvents) console.log('[fabric] mouse:down', { button: opt.e.button, which: opt.e.which, ctrlKey: !!opt.e.ctrlKey, x: opt.e.clientX, y: opt.e.clientY });
+      if (this.debugEvents) console.log('[fabric] mouse:down', {
+        button: opt?.e?.button,
+        buttons: opt?.e?.buttons,
+        which: opt?.e?.which,
+        ctrlKey: !!opt?.e?.ctrlKey,
+        metaKey: !!opt?.e?.metaKey,
+        altKey: !!opt?.e?.altKey,
+        shiftKey: !!opt?.e?.shiftKey,
+        x: opt?.e?.clientX,
+        y: opt?.e?.clientY
+      });
       // Check if it's a right-click / secondary click
       if (isSecondary(opt.e)) {
         // Block panning while an origin pin is active
@@ -361,7 +388,15 @@ export class Schematic extends Base {
     });
     
     this.fabric.on('mouse:up', (opt) => {
-      if (this.debugEvents) console.log('[fabric] mouse:up', { button: opt?.e?.button, which: opt?.e?.which });
+      if (this.debugEvents) console.log('[fabric] mouse:up', {
+        button: opt?.e?.button,
+        buttons: opt?.e?.buttons,
+        which: opt?.e?.which,
+        ctrlKey: !!opt?.e?.ctrlKey,
+        metaKey: !!opt?.e?.metaKey,
+        altKey: !!opt?.e?.altKey,
+        shiftKey: !!opt?.e?.shiftKey
+      });
       if (this.isPanning) {
         if (this.debugEvents) console.log('[drag] mouse:up - end panning');
         this.isPanning = false;
@@ -390,7 +425,14 @@ export class Schematic extends Base {
     // Handle cases where the mouse leaves the canvas during panning
     this.fabric.on('mouse:out', (opt) => {
       const relatedTarget = opt?.e?.relatedTarget || null;
-      if (this.debugEvents) console.log('[fabric] mouse:out', { relatedTarget });
+      if (this.debugEvents) console.log('[fabric] mouse:out', {
+        relatedTarget,
+        button: opt?.e?.button,
+        buttons: opt?.e?.buttons,
+        which: opt?.e?.which,
+        ctrlKey: !!opt?.e?.ctrlKey,
+        metaKey: !!opt?.e?.metaKey
+      });
       // Only cancel when actually leaving the canvas element (e.g., into <body> or outside)
       const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || (this.fabric.getElement && this.fabric.getElement()));
       const leavingCanvas = !!relatedTarget && (relatedTarget === document.body || (domEl && !domEl.contains(relatedTarget)));
@@ -422,32 +464,22 @@ export class Schematic extends Base {
     // Prevent context menu on right-click for panning
     if (this.container) {
       this.container.addEventListener('contextmenu', (e) => {
-        if (this.debugEvents) console.log('[drag] contextmenu prevented');
+        if (this.debugEvents) console.log('[drag] contextmenu prevented', {
+          button: e.button,
+          buttons: e.buttons,
+          which: e.which,
+          ctrlKey: !!e.ctrlKey,
+          metaKey: !!e.metaKey,
+          altKey: !!e.altKey,
+          shiftKey: !!e.shiftKey,
+          pointerType: e.pointerType,
+          detail: e.detail
+        });
         e.preventDefault();
+        e.stopPropagation();
         // If we intentionally started pan via ctrl+click, do not cancel here; just suppress the menu
         if (this._suppressNextContextMenu) {
           return false;
-        }
-        // otherwise ensure panning is not left on if context menu interrupts mouseup
-        if (this.isPanning) {
-          if (this.debugEvents) console.log('[drag] contextmenu - cancel panning');
-          this.isPanning = false;
-          this.fabric.defaultCursor = 'default';
-          // Clear suppression if any
-          this._suppressNextContextMenu = false;
-          // Restore selection/target finding
-          if (this._prevSkipTargetFind !== undefined) {
-            this.fabric.skipTargetFind = this._prevSkipTargetFind;
-            this._prevSkipTargetFind = undefined;
-          }
-          if (this._prevSelection !== undefined) {
-            this.fabric.selection = this._prevSelection;
-            this._prevSelection = undefined;
-          }
-          if (this.mapInstance) {
-            this.mapInstance.update();
-          }
-          this.emit('pan:completed');
         }
         return false;
       }, false);
@@ -472,31 +504,22 @@ export class Schematic extends Base {
       );
 
       domEl.addEventListener('contextmenu', (e) => {
-        if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas');
+        if (this.debugEvents) console.log('[dom] contextmenu prevented on canvas', {
+          button: e.button,
+          buttons: e.buttons,
+          which: e.which,
+          ctrlKey: !!e.ctrlKey,
+          metaKey: !!e.metaKey,
+          altKey: !!e.altKey,
+          shiftKey: !!e.shiftKey,
+          pointerType: e.pointerType,
+          detail: e.detail
+        });
         e.preventDefault();
+        e.stopPropagation();
         // If we intentionally started pan via ctrl+click, do not cancel here; just suppress the menu
         if (this._suppressNextContextMenu) {
           return false;
-        }
-        if (this.isPanning) {
-          if (this.debugEvents) console.log('[drag] dom contextmenu - cancel panning');
-          this.isPanning = false;
-          this.fabric.defaultCursor = 'default';
-          // Clear suppression if any
-          this._suppressNextContextMenu = false;
-          // Restore selection/target finding
-          if (this._prevSkipTargetFind !== undefined) {
-            this.fabric.skipTargetFind = this._prevSkipTargetFind;
-            this._prevSkipTargetFind = undefined;
-          }
-          if (this._prevSelection !== undefined) {
-            this.fabric.selection = this._prevSelection;
-            this._prevSelection = undefined;
-          }
-          if (this.mapInstance) {
-            this.mapInstance.update();
-          }
-          this.emit('pan:completed');
         }
         return false;
       });
@@ -505,11 +528,21 @@ export class Schematic extends Base {
       domEl.addEventListener('mousedown', (e) => {
         const isCtrlPrimary = e.ctrlKey && e.button === 0;
         const isSecondaryBtn = e.button === 2; // two-finger/right-click
+        if (this.debugEvents) console.log('[dom] mousedown', {
+          button: e.button,
+          buttons: e.buttons,
+          which: e.which,
+          ctrlKey: !!e.ctrlKey,
+          metaKey: !!e.metaKey,
+          altKey: !!e.altKey,
+          shiftKey: !!e.shiftKey,
+          isCtrlPrimary,
+          isSecondaryBtn
+        });
         if (isCtrlPrimary || isSecondaryBtn) {
-          if (this.debugEvents) console.log('[dom] mousedown preventDefault', { ctrlPrimary: isCtrlPrimary, secondaryBtn: isSecondaryBtn });
-          // Suppress upcoming contextmenu so it doesn't cancel our pan
+          if (this.debugEvents) console.log('[dom] mousedown (no preventDefault) — will suppress upcoming contextmenu', { ctrlPrimary: isCtrlPrimary, secondaryBtn: isSecondaryBtn });
+          // Suppress upcoming contextmenu so it doesn't cancel our pan, but let Fabric receive mousedown
           this._suppressNextContextMenu = true;
-          e.preventDefault();
         }
       }, true); // capture to run before default handlers
       
@@ -544,13 +577,24 @@ export class Schematic extends Base {
       // Clamp the zoom level to the configured limits
       const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
 
-      // Apply zoom around the grid origin (world 0,0) regardless of mode
+      // Apply zoom
+      // If Alt/Option is held, zoom around the mouse position to keep it stationary.
+      // Otherwise, preserve existing behavior (anchor at screen position of world origin).
       this.mapInstance.zoom = clampedZoom;
       const canvas = this.fabric;
       const vptBefore = canvas.viewportTransform;
-      const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
-      const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
-      const point = new fabric.Point(originScreenX, originScreenY);
+      let point;
+      if (opt.e.altKey) {
+        const el = (canvas.getElement && canvas.getElement()) || canvas.upperCanvasEl || canvas.lowerCanvasEl;
+        const rect = el.getBoundingClientRect();
+        const px = opt.e.clientX - rect.left;
+        const py = opt.e.clientY - rect.top;
+        point = new fabric.Point(px, py);
+      } else {
+        const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
+        const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
+        point = new fabric.Point(originScreenX, originScreenY);
+      }
       canvas.zoomToPoint(point, clampedZoom);
 
       // Update grid viewport to reflect new transform (viewport center in world coords)
@@ -569,8 +613,9 @@ export class Schematic extends Base {
 
       if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
 
-      // Emit a zoom event with the new zoom level
+      // Emit zoom events so UIs can update immediately
       this.emit('zoom', { zoom: clampedZoom });
+      this.emit('zoom:change', { zoom: clampedZoom });
     }
     
     // Clear any existing timeout to reset debounce timer

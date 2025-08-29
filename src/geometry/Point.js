@@ -1,3 +1,5 @@
+import fabric from '../lib/fabric-import.js';
+
 export class Point extends fabric.Point {
   constructor(...params) {
     let x;
