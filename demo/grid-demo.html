@@ -5,9 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grid Demo</title>
     <style>
-        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-        #canvas-container { border: 1px solid #ccc; margin: 20px 0; width: 800px; height: 600px; background: #f8f9fa; }
-        .controls { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        html, body { height: 100%; }
+        body {
+          margin: 0;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+        }
+        .controls {
+          margin: 20px 0;
+          padding: 15px;
+          background: #f5f5f5;
+          border-radius: 4px;
+          flex: 0 0 auto;
+        }
+        #canvas-container {
+          border: 1px solid #ccc;
+          margin: 0; /* remove extra margin to maximize space */
+          background: #f8f9fa;
+          flex: 1 1 auto;
+          min-height: 0; /* important so flex item can shrink below content height */
+          min-width: 0;
+        }
         button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
         #coordinates { margin-left: 20px; font-family: monospace; }
     </style>
@@ -39,6 +60,20 @@
         <br><br>
         <span id="coordinates">X: 0, Y: 0</span>
         <span id="zoomLevel" style="margin-left: 20px; font-family: monospace;">Zoom: 1.00x</span>
+        <div style="margin-top:10px;">
+          <label style="margin-right:15px;">
+            <input type="checkbox" id="toggleGrid" checked>
+            Show Grid
+          </label>
+          <label style="margin-right:15px;">
+            <input type="checkbox" id="toggleZoomOnOrigin" checked>
+            Zoom on Origin
+          </label>
+          <label>
+            <input type="checkbox" id="toggleScrollbars">
+            Show Scrollbars
+          </label>
+        </div>
     </div>
     <div id="canvas-container"></div>
     <!-- Load Fabric.js v6 (browser UMD) from CDN -->
@@ -47,18 +82,15 @@
     <!-- Load EventEmitter2 from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     
-    <!-- Direct module imports -->
+    <!-- Import from dist folder as an external application would -->
     <script type="module">
-      import Grid from '../src/grid/Grid.js';
-      import { Schematic } from '../src/core/Schematic.js';
+      import { Grid, Schematic } from '../dist/schematic.esm.js';
 
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
         
-        // Initialize schematic with grid enabled
+        // Initialize schematic with grid enabled (size from container)
         const schematic = new Schematic(container, {
-          width: 800,
-          height: 600,
           showGrid: true, // Grid will be enabled by default
           zoomDebounceDelay: 200 // Configure the zoom debounce delay
         });
@@ -109,6 +141,25 @@
         // Set initial parameters using Schematic methods
         schematic.setZoom(1.0);
 
+        // Resize canvas when container changes size
+        const resize = () => {
+          const w = container.clientWidth;
+          const h = container.clientHeight;
+          if (schematic?.mapInstance && typeof schematic.mapInstance.onResize === 'function') {
+            schematic.mapInstance.onResize(w, h);
+          }
+        };
+        // Observe container resize
+        if ('ResizeObserver' in window) {
+          const ro = new ResizeObserver(() => resize());
+          ro.observe(container);
+        } else {
+          // Fallback
+          window.addEventListener('resize', resize);
+        }
+        // Initial sizing
+        resize();
+
         const minZoom = document.getElementById('minZoomInput');
         const maxZoom = document.getElementById('maxZoomInput');
         const updateZoom = () => {
@@ -129,6 +180,18 @@
         
         // Initial zoom setup
         updateZoom();
+
+        // Persist-only: wire Show Scrollbars to schematic (no behavior)
+        const toggleScrollbars = document.getElementById('toggleScrollbars');
+        const syncScrollbarsPref = () => {
+          const checked = !!toggleScrollbars?.checked;
+          if (typeof schematic.setShowScrollbars === 'function') {
+            schematic.setShowScrollbars(checked);
+          }
+        };
+        toggleScrollbars?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
 
         // Add sample content to demonstrate the library using Schematic's API
         const circle = new fabric.Circle({
@@ -170,12 +233,26 @@
             document.getElementById('zoomLevel').textContent = zoomLevel;
           }
           
-          // Update coordinates display (static for now)
-          if (document.getElementById('coordinates')) {
-            // We could update this with dynamic coordinates if needed
-            document.getElementById('coordinates').textContent = 'X: 0, Y: 0';
-          }
+          // Coordinates are updated live from mouse:move
         }
+
+        // Live update: mouse position in grid/world coordinates
+        fabricCanvas.on('mouse:move', (opt) => {
+          const el = (fabricCanvas.getElement && fabricCanvas.getElement()) || fabricCanvas.upperCanvasEl || fabricCanvas.lowerCanvasEl;
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const px = opt.e.clientX - rect.left;
+          const py = opt.e.clientY - rect.top;
+          const vpt = fabricCanvas.viewportTransform;
+          if (!vpt) return;
+          const worldX = (px - vpt[4]) / vpt[0];
+          const worldY = (py - vpt[5]) / vpt[3];
+          const gridY = -worldY; // grid uses inverted Y
+          const coordsEl = document.getElementById('coordinates');
+          if (coordsEl) {
+            coordsEl.textContent = `X: ${worldX.toFixed(2)}, Y: ${gridY.toFixed(2)}`;
+          }
+        });
         
         // Also listen for grid control changes
         schematic.on('grid:change', () => {
