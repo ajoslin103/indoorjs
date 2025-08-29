@@ -82,10 +82,9 @@
     <!-- Load EventEmitter2 from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     
-    <!-- Direct module imports -->
+    <!-- Import from dist folder as an external application would -->
     <script type="module">
-      import Grid from '../src/grid/Grid.js';
-      import { Schematic } from '../src/core/Schematic.js';
+      import { Grid, Schematic } from '../dist/schematic.esm.js';
 
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');

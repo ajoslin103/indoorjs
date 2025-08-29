@@ -1,7 +1,5 @@
 'use strict';
 
-var fabric = require('fabric');
-
 class Base {
   constructor(options) {
     this._options = options || {};
@@ -9,7 +7,19 @@ class Base {
   }
 }
 
-class Point extends fabric.fabric.Point {
+/**
+ * Central import for fabric.js
+ * This allows us to import fabric from a single location
+ * and ensures consistent usage across the codebase
+ * 
+ * In browser environments, fabric is loaded from a CDN and available as a global
+ * In Node.js environments, it would need to be imported differently
+ */
+
+// Use the global fabric object that's loaded via script tag in HTML
+const fabric = window.fabric;
+
+class Point extends fabric.Point {
   constructor(...params) {
     let x;
     let y;
@@ -74,7 +84,7 @@ const MAP = {
  * This function should be called before using any Fabric.js objects
  */
 function initializeFabric() {
-  if (typeof fabric.fabric === 'undefined') {
+  if (typeof fabric === 'undefined') {
     console.warn('Fabric.js not loaded. Cannot initialize Fabric settings.');
     return;
   }
@@ -116,7 +126,7 @@ function initializeFabric() {
   // fabric.Object.prototype.padding = 5;
   
   // Add getBounds utility method
-  fabric.fabric.Object.prototype.getBounds = function getBounds() {
+  fabric.Object.prototype.getBounds = function getBounds() {
     const coords = [];
     coords.push(new Point(this.left - this.width / 2.0, this.top - this.height / 2.0));
     coords.push(new Point(this.left + this.width / 2.0, this.top + this.height / 2.0));
@@ -1142,7 +1152,7 @@ class Map extends Base {
     initializeFabric();
     
     // create the fabric Canvas
-    this.fabric = new fabric.fabric.Canvas(canvas, {
+    this.fabric = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
       renderOnAddRemove: true,
       fireRightClick: true, // allow right-click events to flow through Fabric
@@ -1272,7 +1282,7 @@ class Map extends Base {
     if (z !== this.zoom) this.zoom = z;
 
     // First apply the zoom to the center of the canvas
-    const centerPoint = new fabric.fabric.Point(canvas.width / 2, canvas.height / 2);
+    const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
     canvas.zoomToPoint(centerPoint, this.zoom);
     
     // Then update the grid based on the new viewport transform
@@ -1735,7 +1745,7 @@ class Schematic extends Base {
         this.lastPosY = opt.e.clientY;
         
         // Pan the fabric canvas
-        this.fabric.relativePan(new fabric.fabric.Point(deltaX, deltaY));
+        this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
         if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
         
         // Update the map to refresh the grid position after panning
@@ -1944,11 +1954,11 @@ class Schematic extends Base {
         const rect = el.getBoundingClientRect();
         const px = opt.e.clientX - rect.left;
         const py = opt.e.clientY - rect.top;
-        point = new fabric.fabric.Point(px, py);
+        point = new fabric.Point(px, py);
       } else {
         const originScreenX = vptBefore ? vptBefore[4] : canvas.width / 2;
         const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
-        point = new fabric.fabric.Point(originScreenX, originScreenY);
+        point = new fabric.Point(originScreenX, originScreenY);
       }
       canvas.zoomToPoint(point, clampedZoom);
 
