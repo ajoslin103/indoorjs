@@ -1,5 +1,5 @@
 import { clamp } from '../lib/mumath/index.js';
-import fabric from '../lib/fabric-import.js';
+import fabric from 'fabric';
 
 import Base from '../core/Base.js';
 import { MAP, Modes, initializeFabric } from '../core/Constants.js';
@@ -32,18 +32,18 @@ export class Map extends Base {
     initializeFabric();
     
     // create the fabric Canvas
-    this.fabric = new fabric.Canvas(canvas, {
+    this.fabricCanvas = new fabric.Canvas(canvas, {
       preserveObjectStacking: true,
       renderOnAddRemove: true,
       fireRightClick: true, // allow right-click events to flow through Fabric
       stopContextMenu: true // prevent default context menu to keep drag uninterrupted
     });
-    this.context = this.fabric.getContext('2d');
+    this.context = this.fabricCanvas.getContext('2d');
 
-    this.originX = -this.fabric.width / 2;
-    this.originY = -this.fabric.height / 2;
+    this.originX = -this.fabricCanvas.width / 2;
+    this.originY = -this.fabricCanvas.height / 2;
 
-    this.fabric.absolutePan({
+    this.fabricCanvas.absolutePan({
       x: this.originX,
       y: this.originY
     });
@@ -68,8 +68,8 @@ export class Map extends Base {
     this.grid = new Grid(this.context, this);
     
     // Set grid dimensions to match fabric canvas
-    this.grid.width = this.fabric.width;
-    this.grid.height = this.fabric.height;
+    this.grid.width = this.fabricCanvas.width;
+    this.grid.height = this.fabricCanvas.height;
     // Initialize grid state with correct dimensions
     this.grid.updateConfiguration();
     
@@ -78,7 +78,7 @@ export class Map extends Base {
     this.grid.center.y = 0; // Center should be 0 to align with fabric's center
     
     // Hook into Fabric's render events to draw the grid after Fabric has rendered
-    this.fabric.on('before:render', () => {
+    this.fabricCanvas.on('before:render', () => {
       if (this.grid) {
         this.grid.render();
       }
@@ -96,7 +96,7 @@ export class Map extends Base {
   }
 
   setZoom(zoom) {
-    const { width, height } = this.fabric;
+    const { width, height } = this.fabricCanvas;
     this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
     this.dx = 0;
     this.dy = 0;
@@ -110,12 +110,12 @@ export class Map extends Base {
   }
 
   reset() {
-    const { width, height } = this.fabric;
+    const { width, height } = this.fabricCanvas;
     this.zoom = this._options.zoom || 1;
     this.center = new Point();
-    this.originX = -this.fabric.width / 2;
-    this.originY = -this.fabric.height / 2;
-    this.fabric.absolutePan({
+    this.originX = -this.fabricCanvas.width / 2;
+    this.originY = -this.fabricCanvas.height / 2;
+    this.fabricCanvas.absolutePan({
       x: this.originX,
       y: this.originY
     });
@@ -129,13 +129,13 @@ export class Map extends Base {
   }
 
   onResize(width, height) {
-    const oldWidth = this.fabric.width;
-    const oldHeight = this.fabric.height;
+    const oldWidth = this.fabricCanvas.width;
+    const oldHeight = this.fabricCanvas.height;
 
     // Parameters required; automatic resize behavior removed
 
-    this.fabric.setWidth(width);
-    this.fabric.setHeight(height);
+    this.fabricCanvas.setWidth(width);
+    this.fabricCanvas.setHeight(height);
 
     if (this.grid) {
       this.grid.width = width;
@@ -146,7 +146,7 @@ export class Map extends Base {
     const dx = width / 2.0 - oldWidth / 2.0;
     const dy = height / 2.0 - oldHeight / 2.0;
 
-    this.fabric.relativePan({
+    this.fabricCanvas.relativePan({
       x: dx,
       y: dy
     });
@@ -155,7 +155,7 @@ export class Map extends Base {
   }
 
   update() {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     
     // Always clamp zoom to bounds, even if set directly elsewhere
     const z = clamp(this.zoom, this.minZoom, this.maxZoom);
@@ -207,12 +207,12 @@ export class Map extends Base {
 
 export const map = (container, options) => {
   const mapInstance = new Map(container, options);
-  return mapInstance.fabric;
+  return mapInstance.fabricCanvas;
 };
 
 // Private helpers on the prototype to keep constructor lean
 Map.prototype._registerSnapping = function _registerSnapping() {
-  const canvas = this.fabric;
+  const canvas = this.fabricCanvas;
   if (!canvas) return;
 
   const round = (v) => Math.round(v);

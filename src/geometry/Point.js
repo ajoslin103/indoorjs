@@ -1,4 +1,4 @@
-import fabric from '../lib/fabric-import.js';
+import fabric from 'fabric';
 
 export class Point extends fabric.Point {
   constructor(...params) {

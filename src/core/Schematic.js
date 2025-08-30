@@ -1,6 +1,6 @@
 import Base from './Base.js';
 import { Map } from '../map/Map.js';
-import fabric from '../lib/fabric-import.js';
+import fabric from 'fabric';
 
 /**
  * Schematic class for handling event subscriptions and emissions
@@ -32,13 +32,13 @@ export class Schematic extends Base {
     
     // Create a Map instance and get its fabric instance
     const mapInstance = new Map(this.container, options);
-    this.fabric = mapInstance.fabric;
+    this.fabricCanvas = mapInstance.fabricCanvas;
     this.mapInstance = mapInstance; // Store reference to map instance
     
     // Ensure initial grid alignment matches Fabric's centered origin (use viewport center in world coords)
-    if (this.mapInstance && this.mapInstance.grid && this.fabric) {
+    if (this.mapInstance && this.mapInstance.grid && this.fabricCanvas) {
       const alignInitialGrid = () => {
-        const canvas = this.fabric;
+        const canvas = this.fabricCanvas;
         const vpt = canvas.viewportTransform;
         if (vpt) {
           const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
@@ -88,7 +88,7 @@ export class Schematic extends Base {
 
   // Set the screen position of the world origin (0,0) and update grid
   setOriginScreen(x, y) {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     if (!canvas) return;
     const vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : [1, 0, 0, 1, 0, 0];
     vpt[4] = x;
@@ -113,7 +113,7 @@ export class Schematic extends Base {
 
   // Get the current screen position of world origin (0,0)
   getOriginScreen() {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     const vpt = canvas && canvas.viewportTransform;
     return { x: vpt ? vpt[4] : (canvas ? canvas.width / 2 : 0), y: vpt ? vpt[5] : (canvas ? canvas.height / 2 : 0) };
   }
@@ -121,7 +121,7 @@ export class Schematic extends Base {
   // Pin origin to a viewport location with optional margin
   // pin: 'NONE' | 'CENTER' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT'
   setOriginPin(pin = 'CENTER', margin = 0) {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     if (!canvas) return;
     // Track active pin settings
     this.originPin = pin;
@@ -130,13 +130,13 @@ export class Schematic extends Base {
     if (pin && pin !== 'NONE' && this.isPanning) {
       if (this.debugEvents) console.log('[drag] cancel ongoing pan due to pin activation');
       this.isPanning = false;
-      this.fabric.defaultCursor = 'default';
+      this.fabricCanvas.defaultCursor = 'default';
       if (this._prevSkipTargetFind !== undefined) {
-        this.fabric.skipTargetFind = this._prevSkipTargetFind;
+        this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
         this._prevSkipTargetFind = undefined;
       }
       if (this._prevSelection !== undefined) {
-        this.fabric.selection = this._prevSelection;
+        this.fabricCanvas.selection = this._prevSelection;
         this._prevSelection = undefined;
       }
       this.emit('pan:completed');
@@ -164,7 +164,7 @@ export class Schematic extends Base {
 
   // Convenience to center the origin
   setOriginToCenter() {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     if (!canvas) return;
     this.setOriginScreen(canvas.width / 2, canvas.height / 2);
   }
@@ -178,8 +178,8 @@ export class Schematic extends Base {
    */
   on(eventName, callback, context) {
     // Connect to fabric's event system directly if it exists
-    if (this.fabric && typeof this.fabric.on === 'function') {
-      this.fabric.on(eventName, callback.bind(context || this));
+    if (this.fabricCanvas && typeof this.fabricCanvas.on === 'function') {
+      this.fabricCanvas.on(eventName, callback.bind(context || this));
     }
     
     // Also store in our local event system
@@ -293,8 +293,8 @@ export class Schematic extends Base {
     if (!visible && this.mapInstance && this.mapInstance.grid) {
       this.mapInstance.grid = null;
       // Trigger a render so the cleared background shows
-      if (this.fabric && typeof this.fabric.requestRenderAll === 'function') {
-        this.fabric.requestRenderAll();
+      if (this.fabricCanvas && typeof this.fabricCanvas.requestRenderAll === 'function') {
+        this.fabricCanvas.requestRenderAll();
       }
     }
 
@@ -307,10 +307,10 @@ export class Schematic extends Base {
    */
   registerEventListeners() {
     // Only register if we have a map instance
-    if (!this.fabric || !this.mapInstance) return this;
+    if (!this.fabricCanvas || !this.mapInstance) return this;
     
     // Register mouse wheel event for zooming
-    this.fabric.on('mouse:wheel', this.handleMouseWheel.bind(this));
+    this.fabricCanvas.on('mouse:wheel', this.handleMouseWheel.bind(this));
     
     // Variables to track right-click panning
     this.isPanning = false;
@@ -327,7 +327,7 @@ export class Schematic extends Base {
       (e.ctrlKey && e.button === 0) // ctrl+left on macOS
     );
 
-    this.fabric.on('mouse:down', (opt) => {
+    this.fabricCanvas.on('mouse:down', (opt) => {
       if (this.debugEvents) console.log('[fabric] mouse:down', {
         button: opt?.e?.button,
         buttons: opt?.e?.buttons,
@@ -350,19 +350,19 @@ export class Schematic extends Base {
         this.isPanning = true;
         this.lastPosX = opt.e.clientX;
         this.lastPosY = opt.e.clientY;
-        this.fabric.defaultCursor = 'grabbing';
+        this.fabricCanvas.defaultCursor = 'grabbing';
         // Disable selection/target finding during pan
-        this._prevSkipTargetFind = this.fabric.skipTargetFind;
-        this.fabric.skipTargetFind = true;
-        this._prevSelection = this.fabric.selection;
-        this.fabric.selection = false;
+        this._prevSkipTargetFind = this.fabricCanvas.skipTargetFind;
+        this.fabricCanvas.skipTargetFind = true;
+        this._prevSelection = this.fabricCanvas.selection;
+        this.fabricCanvas.selection = false;
         // If pan initiated by ctrl+left (macOS secondary), suppress the next contextmenu
         this._suppressNextContextMenu = !!opt.e.ctrlKey && opt.e.button === 0;
         if (this.debugEvents) console.log('[drag] start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
       }
     });
     
-    this.fabric.on('mouse:move', (opt) => {
+    this.fabricCanvas.on('mouse:move', (opt) => {
       // if (this.debugEvents) console.log('[fabric] mouse:move', { x: opt.e.clientX, y: opt.e.clientY });
       if (this.isPanning) {
         const deltaX = opt.e.clientX - this.lastPosX;
@@ -374,8 +374,8 @@ export class Schematic extends Base {
         this.lastPosY = opt.e.clientY;
         
         // Pan the fabric canvas
-        this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
-        if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+        this.fabricCanvas.relativePan(new fabric.Point(deltaX, deltaY));
+        if (typeof this.fabricCanvas.requestRenderAll === 'function') this.fabricCanvas.requestRenderAll();
         
         // Update the map to refresh the grid position after panning
         if (this.mapInstance) {
@@ -387,7 +387,7 @@ export class Schematic extends Base {
       }
     });
     
-    this.fabric.on('mouse:up', (opt) => {
+    this.fabricCanvas.on('mouse:up', (opt) => {
       if (this.debugEvents) console.log('[fabric] mouse:up', {
         button: opt?.e?.button,
         buttons: opt?.e?.buttons,
@@ -400,16 +400,16 @@ export class Schematic extends Base {
       if (this.isPanning) {
         if (this.debugEvents) console.log('[drag] mouse:up - end panning');
         this.isPanning = false;
-        this.fabric.defaultCursor = 'default';
+        this.fabricCanvas.defaultCursor = 'default';
         // Clear any pending contextmenu suppression
         this._suppressNextContextMenu = false;
         // Restore selection/target finding
         if (this._prevSkipTargetFind !== undefined) {
-          this.fabric.skipTargetFind = this._prevSkipTargetFind;
+          this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
           this._prevSkipTargetFind = undefined;
         }
         if (this._prevSelection !== undefined) {
-          this.fabric.selection = this._prevSelection;
+          this.fabricCanvas.selection = this._prevSelection;
           this._prevSelection = undefined;
         }
         
@@ -423,7 +423,7 @@ export class Schematic extends Base {
     });
     
     // Handle cases where the mouse leaves the canvas during panning
-    this.fabric.on('mouse:out', (opt) => {
+    this.fabricCanvas.on('mouse:out', (opt) => {
       const relatedTarget = opt?.e?.relatedTarget || null;
       if (this.debugEvents) console.log('[fabric] mouse:out', {
         relatedTarget,
@@ -434,21 +434,21 @@ export class Schematic extends Base {
         metaKey: !!opt?.e?.metaKey
       });
       // Only cancel when actually leaving the canvas element (e.g., into <body> or outside)
-      const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || (this.fabric.getElement && this.fabric.getElement()));
+      const domEl = this.fabricCanvas && (this.fabricCanvas.upperCanvasEl || this.fabricCanvas.lowerCanvasEl || (this.fabricCanvas.getElement && this.fabricCanvas.getElement()));
       const leavingCanvas = !!relatedTarget && (relatedTarget === document.body || (domEl && !domEl.contains(relatedTarget)));
       if (this.isPanning && leavingCanvas) {
         if (this.debugEvents) console.log('[drag] mouse:out - cancel panning');
         this.isPanning = false;
-        this.fabric.defaultCursor = 'default';
+        this.fabricCanvas.defaultCursor = 'default';
         // Clear any pending contextmenu suppression
         this._suppressNextContextMenu = false;
         // Restore selection/target finding
         if (this._prevSkipTargetFind !== undefined) {
-          this.fabric.skipTargetFind = this._prevSkipTargetFind;
+          this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
           this._prevSkipTargetFind = undefined;
         }
         if (this._prevSelection !== undefined) {
-          this.fabric.selection = this._prevSelection;
+          this.fabricCanvas.selection = this._prevSelection;
           this._prevSelection = undefined;
         }
         
@@ -488,12 +488,12 @@ export class Schematic extends Base {
     // One-time render confirmation
     const onceAfterRender = () => {
       if (this.debugEvents) console.log('[fabric] after:render (once)');
-      this.fabric.off('after:render', onceAfterRender);
+      this.fabricCanvas.off('after:render', onceAfterRender);
     };
-    this.fabric.on('after:render', onceAfterRender);
+    this.fabricCanvas.on('after:render', onceAfterRender);
 
     // DOM-level fallback listeners on Fabric canvas element
-    const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || this.fabric.getElement && this.fabric.getElement());
+    const domEl = this.fabricCanvas && (this.fabricCanvas.upperCanvasEl || this.fabricCanvas.lowerCanvasEl || this.fabricCanvas.getElement && this.fabricCanvas.getElement());
     if (domEl) {
       if (this.debugEvents) console.log('[dom] attaching mouse listeners to canvas element');
       const isDomSecondary = (e) => (
@@ -581,7 +581,7 @@ export class Schematic extends Base {
       // If Alt/Option is held, zoom around the mouse position to keep it stationary.
       // Otherwise, preserve existing behavior (anchor at screen position of world origin).
       this.mapInstance.zoom = clampedZoom;
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       const vptBefore = canvas.viewportTransform;
       let point;
       if (opt.e.altKey) {
@@ -631,7 +631,7 @@ export class Schematic extends Base {
           this.mapInstance.update();
         } else {
           // Recompute grid alignment based on current viewport without re-centering
-          const canvas = this.fabric;
+          const canvas = this.fabricCanvas;
           const vpt = canvas.viewportTransform;
           if (this.mapInstance.grid) {
             if (vpt) {
@@ -646,7 +646,7 @@ export class Schematic extends Base {
           }
         }
         // Force a complete redraw to ensure everything is rendered properly
-        this.fabric.requestRenderAll();
+        this.fabricCanvas.requestRenderAll();
       }
       // Fire an event that zooming has completed
       this.emit('zoom:completed', { zoom: this.mapInstance.zoom });
@@ -742,5 +742,5 @@ export class Schematic extends Base {
  */
 export const schematic = (container, options) => {
   const schematicInstance = new Schematic(container, options);
-  return schematicInstance.fabric;
+  return schematicInstance.fabricCanvas;
 };

@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Schematic = {}));
-})(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('fabric')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'fabric'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Schematic = {}, global.fabric));
+})(this, (function (exports, fabric) { 'use strict';
 
   class Base {
     constructor(options) {
@@ -10,18 +10,6 @@
       Object.assign(this, options);
     }
   }
-
-  /**
-   * Central import for fabric.js
-   * This allows us to import fabric from a single location
-   * and ensures consistent usage across the codebase
-   * 
-   * In browser environments, fabric is loaded from a CDN and available as a global
-   * In Node.js environments, it would need to be imported differently
-   */
-
-  // Use the global fabric object that's loaded via script tag in HTML
-  const fabric = window.fabric;
 
   class Point extends fabric.Point {
     constructor(...params) {
@@ -1156,18 +1144,18 @@
       initializeFabric();
       
       // create the fabric Canvas
-      this.fabric = new fabric.Canvas(canvas, {
+      this.fabricCanvas = new fabric.Canvas(canvas, {
         preserveObjectStacking: true,
         renderOnAddRemove: true,
         fireRightClick: true, // allow right-click events to flow through Fabric
         stopContextMenu: true // prevent default context menu to keep drag uninterrupted
       });
-      this.context = this.fabric.getContext('2d');
+      this.context = this.fabricCanvas.getContext('2d');
 
-      this.originX = -this.fabric.width / 2;
-      this.originY = -this.fabric.height / 2;
+      this.originX = -this.fabricCanvas.width / 2;
+      this.originY = -this.fabricCanvas.height / 2;
 
-      this.fabric.absolutePan({
+      this.fabricCanvas.absolutePan({
         x: this.originX,
         y: this.originY
       });
@@ -1192,8 +1180,8 @@
       this.grid = new Grid(this.context, this);
       
       // Set grid dimensions to match fabric canvas
-      this.grid.width = this.fabric.width;
-      this.grid.height = this.fabric.height;
+      this.grid.width = this.fabricCanvas.width;
+      this.grid.height = this.fabricCanvas.height;
       // Initialize grid state with correct dimensions
       this.grid.updateConfiguration();
       
@@ -1202,7 +1190,7 @@
       this.grid.center.y = 0; // Center should be 0 to align with fabric's center
       
       // Hook into Fabric's render events to draw the grid after Fabric has rendered
-      this.fabric.on('before:render', () => {
+      this.fabricCanvas.on('before:render', () => {
         if (this.grid) {
           this.grid.render();
         }
@@ -1220,7 +1208,7 @@
     }
 
     setZoom(zoom) {
-      const { width, height } = this.fabric;
+      const { width, height } = this.fabricCanvas;
       this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
       this.dx = 0;
       this.dy = 0;
@@ -1234,12 +1222,12 @@
     }
 
     reset() {
-      const { width, height } = this.fabric;
+      const { width, height } = this.fabricCanvas;
       this.zoom = this._options.zoom || 1;
       this.center = new Point();
-      this.originX = -this.fabric.width / 2;
-      this.originY = -this.fabric.height / 2;
-      this.fabric.absolutePan({
+      this.originX = -this.fabricCanvas.width / 2;
+      this.originY = -this.fabricCanvas.height / 2;
+      this.fabricCanvas.absolutePan({
         x: this.originX,
         y: this.originY
       });
@@ -1253,13 +1241,13 @@
     }
 
     onResize(width, height) {
-      const oldWidth = this.fabric.width;
-      const oldHeight = this.fabric.height;
+      const oldWidth = this.fabricCanvas.width;
+      const oldHeight = this.fabricCanvas.height;
 
       // Parameters required; automatic resize behavior removed
 
-      this.fabric.setWidth(width);
-      this.fabric.setHeight(height);
+      this.fabricCanvas.setWidth(width);
+      this.fabricCanvas.setHeight(height);
 
       if (this.grid) {
         this.grid.width = width;
@@ -1270,7 +1258,7 @@
       const dx = width / 2.0 - oldWidth / 2.0;
       const dy = height / 2.0 - oldHeight / 2.0;
 
-      this.fabric.relativePan({
+      this.fabricCanvas.relativePan({
         x: dx,
         y: dy
       });
@@ -1279,7 +1267,7 @@
     }
 
     update() {
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       
       // Always clamp zoom to bounds, even if set directly elsewhere
       const z = clamp(this.zoom, this.minZoom, this.maxZoom);
@@ -1331,12 +1319,12 @@
 
   const map = (container, options) => {
     const mapInstance = new Map(container, options);
-    return mapInstance.fabric;
+    return mapInstance.fabricCanvas;
   };
 
   // Private helpers on the prototype to keep constructor lean
   Map.prototype._registerSnapping = function _registerSnapping() {
-    const canvas = this.fabric;
+    const canvas = this.fabricCanvas;
     if (!canvas) return;
 
     const round = (v) => Math.round(v);
@@ -1407,13 +1395,13 @@
       
       // Create a Map instance and get its fabric instance
       const mapInstance = new Map(this.container, options);
-      this.fabric = mapInstance.fabric;
+      this.fabricCanvas = mapInstance.fabricCanvas;
       this.mapInstance = mapInstance; // Store reference to map instance
       
       // Ensure initial grid alignment matches Fabric's centered origin (use viewport center in world coords)
-      if (this.mapInstance && this.mapInstance.grid && this.fabric) {
+      if (this.mapInstance && this.mapInstance.grid && this.fabricCanvas) {
         const alignInitialGrid = () => {
-          const canvas = this.fabric;
+          const canvas = this.fabricCanvas;
           const vpt = canvas.viewportTransform;
           if (vpt) {
             const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
@@ -1463,7 +1451,7 @@
 
     // Set the screen position of the world origin (0,0) and update grid
     setOriginScreen(x, y) {
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       if (!canvas) return;
       const vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : [1, 0, 0, 1, 0, 0];
       vpt[4] = x;
@@ -1488,7 +1476,7 @@
 
     // Get the current screen position of world origin (0,0)
     getOriginScreen() {
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       const vpt = canvas && canvas.viewportTransform;
       return { x: vpt ? vpt[4] : (canvas ? canvas.width / 2 : 0), y: vpt ? vpt[5] : (canvas ? canvas.height / 2 : 0) };
     }
@@ -1496,7 +1484,7 @@
     // Pin origin to a viewport location with optional margin
     // pin: 'NONE' | 'CENTER' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT'
     setOriginPin(pin = 'CENTER', margin = 0) {
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       if (!canvas) return;
       // Track active pin settings
       this.originPin = pin;
@@ -1505,13 +1493,13 @@
       if (pin && pin !== 'NONE' && this.isPanning) {
         if (this.debugEvents) console.log('[drag] cancel ongoing pan due to pin activation');
         this.isPanning = false;
-        this.fabric.defaultCursor = 'default';
+        this.fabricCanvas.defaultCursor = 'default';
         if (this._prevSkipTargetFind !== undefined) {
-          this.fabric.skipTargetFind = this._prevSkipTargetFind;
+          this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
           this._prevSkipTargetFind = undefined;
         }
         if (this._prevSelection !== undefined) {
-          this.fabric.selection = this._prevSelection;
+          this.fabricCanvas.selection = this._prevSelection;
           this._prevSelection = undefined;
         }
         this.emit('pan:completed');
@@ -1539,7 +1527,7 @@
 
     // Convenience to center the origin
     setOriginToCenter() {
-      const canvas = this.fabric;
+      const canvas = this.fabricCanvas;
       if (!canvas) return;
       this.setOriginScreen(canvas.width / 2, canvas.height / 2);
     }
@@ -1553,8 +1541,8 @@
      */
     on(eventName, callback, context) {
       // Connect to fabric's event system directly if it exists
-      if (this.fabric && typeof this.fabric.on === 'function') {
-        this.fabric.on(eventName, callback.bind(context || this));
+      if (this.fabricCanvas && typeof this.fabricCanvas.on === 'function') {
+        this.fabricCanvas.on(eventName, callback.bind(context || this));
       }
       
       // Also store in our local event system
@@ -1668,8 +1656,8 @@
       if (!visible && this.mapInstance && this.mapInstance.grid) {
         this.mapInstance.grid = null;
         // Trigger a render so the cleared background shows
-        if (this.fabric && typeof this.fabric.requestRenderAll === 'function') {
-          this.fabric.requestRenderAll();
+        if (this.fabricCanvas && typeof this.fabricCanvas.requestRenderAll === 'function') {
+          this.fabricCanvas.requestRenderAll();
         }
       }
 
@@ -1682,10 +1670,10 @@
      */
     registerEventListeners() {
       // Only register if we have a map instance
-      if (!this.fabric || !this.mapInstance) return this;
+      if (!this.fabricCanvas || !this.mapInstance) return this;
       
       // Register mouse wheel event for zooming
-      this.fabric.on('mouse:wheel', this.handleMouseWheel.bind(this));
+      this.fabricCanvas.on('mouse:wheel', this.handleMouseWheel.bind(this));
       
       // Variables to track right-click panning
       this.isPanning = false;
@@ -1702,7 +1690,7 @@
         (e.ctrlKey && e.button === 0) // ctrl+left on macOS
       );
 
-      this.fabric.on('mouse:down', (opt) => {
+      this.fabricCanvas.on('mouse:down', (opt) => {
         if (this.debugEvents) console.log('[fabric] mouse:down', {
           button: opt?.e?.button,
           buttons: opt?.e?.buttons,
@@ -1725,19 +1713,19 @@
           this.isPanning = true;
           this.lastPosX = opt.e.clientX;
           this.lastPosY = opt.e.clientY;
-          this.fabric.defaultCursor = 'grabbing';
+          this.fabricCanvas.defaultCursor = 'grabbing';
           // Disable selection/target finding during pan
-          this._prevSkipTargetFind = this.fabric.skipTargetFind;
-          this.fabric.skipTargetFind = true;
-          this._prevSelection = this.fabric.selection;
-          this.fabric.selection = false;
+          this._prevSkipTargetFind = this.fabricCanvas.skipTargetFind;
+          this.fabricCanvas.skipTargetFind = true;
+          this._prevSelection = this.fabricCanvas.selection;
+          this.fabricCanvas.selection = false;
           // If pan initiated by ctrl+left (macOS secondary), suppress the next contextmenu
           this._suppressNextContextMenu = !!opt.e.ctrlKey && opt.e.button === 0;
           if (this.debugEvents) console.log('[drag] start panning', { lastPosX: this.lastPosX, lastPosY: this.lastPosY });
         }
       });
       
-      this.fabric.on('mouse:move', (opt) => {
+      this.fabricCanvas.on('mouse:move', (opt) => {
         // if (this.debugEvents) console.log('[fabric] mouse:move', { x: opt.e.clientX, y: opt.e.clientY });
         if (this.isPanning) {
           const deltaX = opt.e.clientX - this.lastPosX;
@@ -1749,8 +1737,8 @@
           this.lastPosY = opt.e.clientY;
           
           // Pan the fabric canvas
-          this.fabric.relativePan(new fabric.Point(deltaX, deltaY));
-          if (typeof this.fabric.requestRenderAll === 'function') this.fabric.requestRenderAll();
+          this.fabricCanvas.relativePan(new fabric.Point(deltaX, deltaY));
+          if (typeof this.fabricCanvas.requestRenderAll === 'function') this.fabricCanvas.requestRenderAll();
           
           // Update the map to refresh the grid position after panning
           if (this.mapInstance) {
@@ -1762,7 +1750,7 @@
         }
       });
       
-      this.fabric.on('mouse:up', (opt) => {
+      this.fabricCanvas.on('mouse:up', (opt) => {
         if (this.debugEvents) console.log('[fabric] mouse:up', {
           button: opt?.e?.button,
           buttons: opt?.e?.buttons,
@@ -1775,16 +1763,16 @@
         if (this.isPanning) {
           if (this.debugEvents) console.log('[drag] mouse:up - end panning');
           this.isPanning = false;
-          this.fabric.defaultCursor = 'default';
+          this.fabricCanvas.defaultCursor = 'default';
           // Clear any pending contextmenu suppression
           this._suppressNextContextMenu = false;
           // Restore selection/target finding
           if (this._prevSkipTargetFind !== undefined) {
-            this.fabric.skipTargetFind = this._prevSkipTargetFind;
+            this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
             this._prevSkipTargetFind = undefined;
           }
           if (this._prevSelection !== undefined) {
-            this.fabric.selection = this._prevSelection;
+            this.fabricCanvas.selection = this._prevSelection;
             this._prevSelection = undefined;
           }
           
@@ -1798,7 +1786,7 @@
       });
       
       // Handle cases where the mouse leaves the canvas during panning
-      this.fabric.on('mouse:out', (opt) => {
+      this.fabricCanvas.on('mouse:out', (opt) => {
         const relatedTarget = opt?.e?.relatedTarget || null;
         if (this.debugEvents) console.log('[fabric] mouse:out', {
           relatedTarget,
@@ -1809,21 +1797,21 @@
           metaKey: !!opt?.e?.metaKey
         });
         // Only cancel when actually leaving the canvas element (e.g., into <body> or outside)
-        const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || (this.fabric.getElement && this.fabric.getElement()));
+        const domEl = this.fabricCanvas && (this.fabricCanvas.upperCanvasEl || this.fabricCanvas.lowerCanvasEl || (this.fabricCanvas.getElement && this.fabricCanvas.getElement()));
         const leavingCanvas = !!relatedTarget && (relatedTarget === document.body || (domEl && !domEl.contains(relatedTarget)));
         if (this.isPanning && leavingCanvas) {
           if (this.debugEvents) console.log('[drag] mouse:out - cancel panning');
           this.isPanning = false;
-          this.fabric.defaultCursor = 'default';
+          this.fabricCanvas.defaultCursor = 'default';
           // Clear any pending contextmenu suppression
           this._suppressNextContextMenu = false;
           // Restore selection/target finding
           if (this._prevSkipTargetFind !== undefined) {
-            this.fabric.skipTargetFind = this._prevSkipTargetFind;
+            this.fabricCanvas.skipTargetFind = this._prevSkipTargetFind;
             this._prevSkipTargetFind = undefined;
           }
           if (this._prevSelection !== undefined) {
-            this.fabric.selection = this._prevSelection;
+            this.fabricCanvas.selection = this._prevSelection;
             this._prevSelection = undefined;
           }
           
@@ -1863,12 +1851,12 @@
       // One-time render confirmation
       const onceAfterRender = () => {
         if (this.debugEvents) console.log('[fabric] after:render (once)');
-        this.fabric.off('after:render', onceAfterRender);
+        this.fabricCanvas.off('after:render', onceAfterRender);
       };
-      this.fabric.on('after:render', onceAfterRender);
+      this.fabricCanvas.on('after:render', onceAfterRender);
 
       // DOM-level fallback listeners on Fabric canvas element
-      const domEl = this.fabric && (this.fabric.upperCanvasEl || this.fabric.lowerCanvasEl || this.fabric.getElement && this.fabric.getElement());
+      const domEl = this.fabricCanvas && (this.fabricCanvas.upperCanvasEl || this.fabricCanvas.lowerCanvasEl || this.fabricCanvas.getElement && this.fabricCanvas.getElement());
       if (domEl) {
         if (this.debugEvents) console.log('[dom] attaching mouse listeners to canvas element');
 
@@ -1950,7 +1938,7 @@
         // If Alt/Option is held, zoom around the mouse position to keep it stationary.
         // Otherwise, preserve existing behavior (anchor at screen position of world origin).
         this.mapInstance.zoom = clampedZoom;
-        const canvas = this.fabric;
+        const canvas = this.fabricCanvas;
         const vptBefore = canvas.viewportTransform;
         let point;
         if (opt.e.altKey) {
@@ -2000,7 +1988,7 @@
             this.mapInstance.update();
           } else {
             // Recompute grid alignment based on current viewport without re-centering
-            const canvas = this.fabric;
+            const canvas = this.fabricCanvas;
             const vpt = canvas.viewportTransform;
             if (this.mapInstance.grid) {
               if (vpt) {
@@ -2015,7 +2003,7 @@
             }
           }
           // Force a complete redraw to ensure everything is rendered properly
-          this.fabric.requestRenderAll();
+          this.fabricCanvas.requestRenderAll();
         }
         // Fire an event that zooming has completed
         this.emit('zoom:completed', { zoom: this.mapInstance.zoom });
@@ -2111,7 +2099,7 @@
    */
   const schematic = (container, options) => {
     const schematicInstance = new Schematic(container, options);
-    return schematicInstance.fabric;
+    return schematicInstance.fabricCanvas;
   };
 
   exports.Axis = Axis;
