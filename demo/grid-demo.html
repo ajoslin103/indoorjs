@@ -32,7 +32,12 @@
         button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
         #coordinates { margin-left: 20px; font-family: monospace; }
     </style>
-</head>
+
+    <!-- Load Fabric.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
+    <!-- Load UMD build of schematic to avoid ESM bare import of 'fabric' in browser -->
+    <script src="../dist/schematic.umd.js"></script>
+  </head>
 <body>
     <h1>Grid Demo</h1>
     <div class="controls">
@@ -77,10 +82,9 @@
     </div>
     <div id="canvas-container"></div>
     
-    <!-- Import from dist folder as an external application would -->
-    <script type="module">
-      import fabric from 'fabric';
-      import { Grid, Schematic } from '../dist/schematic.esm.js';
+    <!-- Use globals exposed by UMD build -->
+    <script>
+      const { Grid, Schematic } = window.Schematic;
 
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
@@ -93,10 +97,9 @@
         
         // Get the fabric instance from the schematic
         const fabricCanvas = schematic.fabricCanvas;
-        // Access the global fabric object from Fabric.js loaded via CDN
-        const fabric = window.fabric;
+
         // Get the map instance from the schematic
-        const mapFabric = schematic.mapInstance;
+        const mapInstance = schematic.mapInstance;
         
         // Listen for pan events from Schematic
         schematic.on('pan:move', (data) => {
@@ -166,7 +169,7 @@
           schematic.setZoomLimits(min, max);
           
           // Set current zoom to ensure it's within limits
-          const currentZoom = mapFabric.zoom || 1.0;
+          const currentZoom = mapInstance.zoom || 1.0;
           schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
         };
         
@@ -225,7 +228,7 @@
         function updateUIDisplay() {
           // Update zoom level display
           if (document.getElementById('zoomLevel')) {
-            const zoomLevel = `Zoom: ${mapFabric.zoom ? mapFabric.zoom.toFixed(2) : '1.00'}x`;
+            const zoomLevel = `Zoom: ${mapInstance.zoom ? mapInstance.zoom.toFixed(2) : '1.00'}x`;
             document.getElementById('zoomLevel').textContent = zoomLevel;
           }
           
