@@ -11,7 +11,7 @@ Your Application -> The Schematic -> The Map
 
 ### The Schematic
 
-`Schematic` is the main entry point recommended for applications. It wraps a `Map` instance, exposes the underlying Fabric.js canvas via `schematic.fabric`, and forwards convenient methods and events for zooming, panning, and grid control.
+`Schematic` is the main entry point recommended for applications. It wraps a `Map` instance, exposes the underlying Fabric.js canvas via `schematic.fabricCanvas`, and forwards convenient methods and events for zooming, panning, and grid control.
 
 It creates and owns the [Fabric.js](https://fabricjs.com/) canvas through the `Map`, provides event helpers (e.g. `on`, `off`, `once`, `emit`), and high-level controls like `setZoom()`, `setZoomLimits(min,max)`, `resetView()`, `setOriginPin(pin, margin)`, and `showGrid(true/false)`.
 
@@ -42,7 +42,7 @@ The grid is stateless with respect to Fabric objects. Each time the viewport cha
 
 ### The Fabric.js canvas
 
-The Fabric.js canvas does what it does — see their docs for details. The Fabric instance is available as `schematic.fabric` so your application can add and manipulate Fabric objects directly. Note: grid coordinates invert the Y axis for display, while Fabric’s world coordinates remain standard.
+The Fabric.js canvas does what it does — see their docs for details. The Fabric instance is available as `schematic.fabricCanvas` so your application can add and manipulate Fabric objects directly. Note: grid coordinates invert the Y axis for display, while Fabric’s world coordinates remain standard.
 
 ## Installation
 
@@ -69,7 +69,7 @@ const schematic = new Schematic(container, {
 });
 
 // Access Fabric.js instance
-const fabricCanvas = schematic.fabric;
+const fabricCanvas = schematic.fabricCanvas;
 
 // Controls
 schematic.setZoomLimits(0.05, 20);
@@ -90,7 +90,7 @@ const container = document.getElementById('canvas-container');
 const map = new Map(container, { showGrid: true });
 
 // Access Fabric.js instance
-const fabricCanvas = map.fabric;
+const fabricCanvas = map.fabricCanvas;
 
 // Controls
 map.setZoom(1);
@@ -104,7 +104,7 @@ fabricCanvas.add(circle);
 ## API overview (selected)
 
 - **`Schematic(container, options)`**: creates a map + grid.
-  - **Properties**: `fabric`, `mapInstance`.
+  - **Properties**: `fabricCanvas`, `mapInstance`.
   - **Events**: `zoom`, `zoom:change`, `zoom:completed`, `pan:move`, `pan:completed`, `grid:change`, `view:reset`.
   - **Methods**:
     - `setZoom(zoom)`

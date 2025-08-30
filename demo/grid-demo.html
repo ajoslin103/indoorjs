@@ -76,14 +76,10 @@
         </div>
     </div>
     <div id="canvas-container"></div>
-    <!-- Load Fabric.js v6 (browser UMD) from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
-
-    <!-- Load EventEmitter2 from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     
     <!-- Import from dist folder as an external application would -->
     <script type="module">
+      import fabric from 'fabric';
       import { Grid, Schematic } from '../dist/schematic.esm.js';
 
       document.addEventListener('DOMContentLoaded', () => {
@@ -96,7 +92,7 @@
         });
         
         // Get the fabric instance from the schematic
-        const fabricCanvas = schematic.fabric;
+        const fabricCanvas = schematic.fabricCanvas;
         // Access the global fabric object from Fabric.js loaded via CDN
         const fabric = window.fabric;
         // Get the map instance from the schematic
