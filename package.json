@@ -6,12 +6,12 @@
   "main": "dist/schematic.cjs.js",
   "module": "dist/schematic.esm.js",
   "browser": "dist/schematic.umd.js",
-  "peerDependencies": {
-    "fabric": "^6.0.0"
-  },
   "scripts": {
     "build": "rollup -c",
     "dev": "browser-sync start --server --files 'src/**/*.js,demo/**/*.html' --startPath demo/grid-demo.html"
+  },
+  "peerDependencies": {
+    "fabric": "^6.7.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
