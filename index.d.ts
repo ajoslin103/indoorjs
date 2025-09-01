@@ -1,4 +1,4 @@
-// Type definitions for @epc/schematic
+// Type definitions for @ajoslin23/schematic
 // Project: https://github.com/ajoslin103/schematic
 
 import { Canvas as FabricCanvas, Object as FabricObject, Point as FabricPoint } from 'fabric';

@@ -55,9 +55,9 @@ The Fabric.js canvas does what it does — see their docs for details. The Fabri
 - TypeScript type definitions included
 
 ```bash
-npm install @epc/schematic fabric
+npm install @ajoslin23/schematic fabric
 # or
-yarn add @epc/schematic fabric
+yarn add @ajoslin23/schematic fabric
 ```
 
 ## Quick start
@@ -68,7 +68,7 @@ The package exports both the `Schematic` class (recommended) and the lower-level
 
 ```javascript
 // JavaScript
-import { Schematic } from '@epc/schematic';
+import { Schematic } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
 const schematic = new Schematic(container, {
@@ -92,7 +92,7 @@ fabricCanvas.add(circle);
 ### TypeScript Example
 
 ```typescript
-import { Schematic } from '@epc/schematic';
+import { Schematic } from '@ajoslin23/schematic';
 import { Circle } from 'fabric';
 
 const container = document.getElementById('canvas-container');
@@ -122,7 +122,7 @@ schematic.fabric.add(circle);
 ### Using the lower-level Map
 
 ```javascript
-import { Map } from '@epc/schematic';
+import { Map } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
 const map = new Map(container, { showGrid: true });
