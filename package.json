@@ -1,6 +1,6 @@
 {
   "name": "@ajoslin23/schematic",
-  "version": "0.24.1",
+  "version": "0.1.0",
   "description": "The IndoorJs Grid as a FabricJS library, facilitates working above coordinate planes",
   "type": "module",
   "main": "dist/schematic.cjs.js",
