@@ -12,6 +12,6 @@
     "npm:fabric": "^6.7.1"
   },
   "imports": {
-    "fabric": "npm:fabric"
+    "fabric": "npm:fabric@^6.7.1"
   }
 }
