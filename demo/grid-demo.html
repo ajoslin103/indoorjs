@@ -32,18 +32,41 @@
         button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
         #coordinates { margin-left: 20px; font-family: monospace; }
     </style>
-</head>
+
+    <!-- Load Fabric.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
+    <!-- Load UMD build of schematic to avoid ESM bare import of 'fabric' in browser -->
+    <script src="../dist/schematic.umd.js"></script>
+  </head>
 <body>
-    <h1>Grid Demo</h1>
-    <div class="controls">
+  <div class="controls">
+    <div style="margin-bottom:15px;">
+      Schematic: The IndoorJs Grid as a FabricJS library, facilitates working above coordinate planes
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="margin-right:15px;">
+          <input disabled type="checkbox" id="toggleGrid" checked>
+          Show Grid
+        </label>
+        <label style="margin-right:15px;">
+          <input disabled type="checkbox" id="toggleZoomOnOrigin" checked>
+          Zoom on Origin
+        </label>
+        <label>
+          <input disabled type="checkbox" id="toggleScrollbars">
+          Show Scrollbars
+        </label>
+      </div>
+      <div style="margin-bottom:15px;">
         <label style="margin-right:10px;">
           Min Zoom: <input id="minZoomInput" type="number" step="0.01" value="0.05" style="width:70px;">
         </label>
         <label style="margin-right:10px;">
           Max Zoom: <input id="maxZoomInput" type="number" step="0.01" value="20" style="width:70px;">
         </label>
-        <button id="resetView">Reset View</button>
-        <br><br>
+        <!-- <button id="resetView">Reset View</button> -->
+      </div>
+      <div style="margin-bottom:15px;">
         <label style="margin-right:10px;">
           Pin Origin: 
           <select id="pinSelect" style="width:100px;">
@@ -57,34 +80,33 @@
         <label style="margin-right:10px;">
           Pin Margin: <input id="pinMarginInput" type="number" step="1" value="10" style="width:70px;">
         </label>
-        <br><br>
+        <!-- <button id="refreshUI">Refresh UI</button> -->
+      </div>
+      <div style="margin-bottom:15px;">
         <span id="coordinates">X: 0, Y: 0</span>
         <span id="zoomLevel" style="margin-left: 20px; font-family: monospace;">Zoom: 1.00x</span>
-        <div style="margin-top:10px;">
-          <label style="margin-right:15px;">
-            <input type="checkbox" id="toggleGrid" checked>
-            Show Grid
-          </label>
-          <label style="margin-right:15px;">
-            <input type="checkbox" id="toggleZoomOnOrigin" checked>
-            Zoom on Origin
-          </label>
-          <label>
-            <input type="checkbox" id="toggleScrollbars">
-            Show Scrollbars
-          </label>
+        <div id="docs" style="margin-left: 20px; font-family: monospace; font-style: italic;">
+          <br> Use mouse wheel to zoom in/out.
+          <br> Hold ALT key to zoom on cursor.
+          <br> Right-click + drag to pan.
         </div>
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="margin-right:10px;">
+          Units: 
+          <select id="uintsSelect" style="width:100px;">
+            <option selected value="POINTS">Points</option>
+            <option disabled value="IMPERIAL">Imperial</option>
+            <option disabled value="METRIC">Metric</option>
+          </select>
+        </label>
+      </div>
     </div>
     <div id="canvas-container"></div>
-    <!-- Load Fabric.js v6 (browser UMD) from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
-
-    <!-- Load EventEmitter2 from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     
-    <!-- Import from dist folder as an external application would -->
-    <script type="module">
-      import { Grid, Schematic } from '../dist/schematic.esm.js';
+    <!-- Use globals exposed by UMD build -->
+    <script>
+      const { Grid, Schematic } = window.Schematic;
 
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
@@ -96,11 +118,10 @@
         });
         
         // Get the fabric instance from the schematic
-        const fabricCanvas = schematic.fabric;
-        // Access the global fabric object from Fabric.js loaded via CDN
-        const fabric = window.fabric;
+        const fabricCanvas = schematic.fabricCanvas;
+
         // Get the map instance from the schematic
-        const mapFabric = schematic.mapInstance;
+        const mapInstance = schematic.mapInstance;
         
         // Listen for pan events from Schematic
         schematic.on('pan:move', (data) => {
@@ -121,13 +142,14 @@
           console.log('Zoom completed - final grid alignment done');
         });
 
-        // Initialize controls with Schematic methods
         document.getElementById('resetView')?.addEventListener('click', () => {
-          // Reset view using Schematic's resetView method
           schematic.resetView();
         });
 
-        // Wire up Pin Origin and Pin Margin controls to set grid origin
+        document.getElementById('refreshUI')?.addEventListener('click', () => {
+          updateUIDisplay();
+        });
+
         const pinSelect = document.getElementById('pinSelect');
         const pinMarginInput = document.getElementById('pinMarginInput');
         const applyPin = () => {
@@ -170,7 +192,7 @@
           schematic.setZoomLimits(min, max);
           
           // Set current zoom to ensure it's within limits
-          const currentZoom = mapFabric.zoom || 1.0;
+          const currentZoom = mapInstance.zoom || 1.0;
           schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
         };
         
@@ -229,7 +251,7 @@
         function updateUIDisplay() {
           // Update zoom level display
           if (document.getElementById('zoomLevel')) {
-            const zoomLevel = `Zoom: ${mapFabric.zoom ? mapFabric.zoom.toFixed(2) : '1.00'}x`;
+            const zoomLevel = `Zoom: ${mapInstance.zoom ? mapInstance.zoom.toFixed(2) : '1.00'}x`;
             document.getElementById('zoomLevel').textContent = zoomLevel;
           }
           
@@ -263,28 +285,6 @@
         // Initialize pin settings and update UI once
         applyPin();
         updateUIDisplay();
-        
-        // Add button for manual UI refresh
-        const refreshButton = document.createElement('button');
-        refreshButton.textContent = 'Refresh UI';
-        refreshButton.addEventListener('click', () => {
-          updateUIDisplay();
-        });
-        document.querySelector('.controls').appendChild(refreshButton);
-        
-        // Add info about wheel zoom
-        const zoomInfoSpan = document.createElement('span');
-        zoomInfoSpan.textContent = ' Use mouse wheel to zoom in/out';
-        zoomInfoSpan.style.marginLeft = '10px';
-        zoomInfoSpan.style.fontStyle = 'italic';
-        document.querySelector('.controls').appendChild(zoomInfoSpan);
-        
-        // Add info about right-click panning
-        const panInfoSpan = document.createElement('span');
-        panInfoSpan.textContent = ' Right-click + drag to pan';
-        panInfoSpan.style.marginLeft = '10px';
-        panInfoSpan.style.fontStyle = 'italic';
-        document.querySelector('.controls').appendChild(panInfoSpan);
       });
     </script>
 </body>

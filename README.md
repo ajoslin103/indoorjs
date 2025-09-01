@@ -1,6 +1,9 @@
-# Maps
+# Schematic
 
-A simple, non-reactive, and extensible canvas-based library built over [Fabric.js](https://fabricjs.com/) for creating and managing 2D graphics. Its key feature is a measured grid that renders beneath Fabric.js objects without affecting them.
+A [fabric.js](https://fabricjs.com/) library, for working with fabric objects above a coordinate plane.
+
+`schematic` is based on the excellent original work of [IndoorJS](https://github.com/mudin/indoorjs) by [Mudin](https://github.com/mudin).
+
 
 ## Architecture
                              / -> Grid (draws lines/axes/labels)
@@ -11,7 +14,7 @@ Your Application -> The Schematic -> The Map
 
 ### The Schematic
 
-`Schematic` is the main entry point recommended for applications. It wraps a `Map` instance, exposes the underlying Fabric.js canvas via `schematic.fabric`, and forwards convenient methods and events for zooming, panning, and grid control.
+`Schematic` is the main entry point recommended for applications. It wraps a `Map` instance, exposing the underlying Fabric.js canvas via `schematic.fabricCanvas`, and forwards convenient methods and events for zooming, panning, and grid control.
 
 It creates and owns the [Fabric.js](https://fabricjs.com/) canvas through the `Map`, provides event helpers (e.g. `on`, `off`, `once`, `emit`), and high-level controls like `setZoom()`, `setZoomLimits(min,max)`, `resetView()`, `setOriginPin(pin, margin)`, and `showGrid(true/false)`.
 
@@ -20,6 +23,7 @@ Interactions supported by default:
 - ScrollBars, for moving about the canvas; or Right-click + drag-panning (Ctrl+Left on macOS)
 - Programmatic `resetView()` to re-center and reset zoom.
 - PinOrigin, which locks the grid/canvas origin to a viewport corner (disables panning)
+- Units (Points, Imperial, Metric)
 
 The schematic instance also exposes `mapInstance` for lower-level access when needed.
 
@@ -42,25 +46,29 @@ The grid is stateless with respect to Fabric objects. Each time the viewport cha
 
 ### The Fabric.js canvas
 
-The Fabric.js canvas does what it does — see their docs for details. The Fabric instance is available as `schematic.fabric` so your application can add and manipulate Fabric objects directly. Note: grid coordinates invert the Y axis for display, while Fabric’s world coordinates remain standard.
+The Fabric.js canvas does what it does — see their docs for details. The Fabric instance is available as `schematic.fabricCanvas` so your application can add and manipulate Fabric objects directly. Note: grid coordinates invert the Y axis for display, while Fabric’s world coordinates remain standard.
 
 ## Installation
 
 - Peer dependency: `fabric@^6`
 - Bundles: CommonJS, ESM, UMD (`dist/`)
+- TypeScript type definitions included
 
 ```bash
-npm install schematic fabric
+npm install @ajoslin23/schematic fabric
+# or
+yarn add @ajoslin23/schematic fabric
 ```
 
 ## Quick start
 
-The package build currently exports `Map` (and a `map()` factory). `Schematic` is available when importing from source paths (as used in the demo) and may be added to the package bundle later.
+The package exports both the `Schematic` class (recommended) and the lower-level `Map` class, along with all supporting utilities.
 
-### Using Schematic (source import)
+### Using Schematic (Recommended)
 
 ```javascript
-import { Schematic } from './src/core/Schematic.js';
+// JavaScript
+import { Schematic } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
 const schematic = new Schematic(container, {
@@ -77,34 +85,64 @@ schematic.setZoom(1);
 schematic.setOriginPin('CENTER', 0); // or 'TOP_LEFT'|'TOP_RIGHT'|'BOTTOM_LEFT'|'BOTTOM_RIGHT'|'NONE'
 
 // Add Fabric objects normally
-const circle = new window.fabric.Circle({ left: 0, top: 0, radius: 50, fill: '#eee' });
+const circle = new fabric.Circle({ left: 0, top: 0, radius: 50, fill: '#eee' });
 fabricCanvas.add(circle);
 ```
 
-### Using the packaged Map
+### TypeScript Example
+
+```typescript
+import { Schematic } from '@ajoslin23/schematic';
+import { Circle } from 'fabric';
+
+const container = document.getElementById('canvas-container');
+if (!container) throw new Error('Container not found');
+
+const schematic = new Schematic(container, {
+  showGrid: true,
+  zoomDebounceDelay: 200
+});
+
+// Controls
+schematic.setZoomLimits(0.05, 20);
+schematic.setZoom(1);
+
+// Add Fabric objects with type safety
+const circle = new Circle({
+  left: 0,
+  top: 0,
+  radius: 50,
+  fill: '#eee',
+  stroke: '#999',
+  strokeWidth: 1
+});
+schematic.fabric.add(circle);
+```
+
+### Using the lower-level Map
 
 ```javascript
-import { Map } from 'schematic';
+import { Map } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
 const map = new Map(container, { showGrid: true });
 
 // Access Fabric.js instance
-const fabricCanvas = map.fabric;
+const fabricCanvas = map.fabricCanvas;
 
 // Controls
 map.setZoom(1);
 map.onResize(container.clientWidth, container.clientHeight);
 
 // Add Fabric objects normally
-const circle = new window.fabric.Circle({ left: 0, top: 0, radius: 50, fill: '#eee' });
+const circle = new fabric.Circle({ left: 0, top: 0, radius: 50, fill: '#eee' });
 fabricCanvas.add(circle);
 ```
 
 ## API overview (selected)
 
 - **`Schematic(container, options)`**: creates a map + grid.
-  - **Properties**: `fabric`, `mapInstance`.
+  - **Properties**: `fabricCanvas`, `mapInstance`.
   - **Events**: `zoom`, `zoom:change`, `zoom:completed`, `pan:move`, `pan:completed`, `grid:change`, `view:reset`.
   - **Methods**:
     - `setZoom(zoom)`

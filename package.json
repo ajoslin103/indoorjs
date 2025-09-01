@@ -1,17 +1,36 @@
 {
-  "name": "schematic",
-  "version": "1.0.0",
-  "description": "Barebones non-reactive canvas schematics",
+  "name": "@ajoslin23/schematic",
+  "version": "0.1.0",
+  "description": "The IndoorJs Grid as a FabricJS library, facilitates working above coordinate planes",
   "type": "module",
   "main": "dist/schematic.cjs.js",
   "module": "dist/schematic.esm.js",
   "browser": "dist/schematic.umd.js",
-  "peerDependencies": {
-    "fabric": "^6.0.0"
-  },
+  "types": "dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c",
-    "dev": "browser-sync start --server --files 'src/**/*.js,demo/**/*.html' --startPath demo/grid-demo.html"
+    "dev": "browser-sync start --server --files 'src/**/*.js,demo/**/*.html' --startPath demo/grid-demo.html",
+    "prepublishOnly": "yarn build",
+    "publish:npm": "npm publish --access public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajoslin103/schematic.git"
+  },
+  "keywords": [
+    "fabric",
+    "canvas",
+    "grid",
+    "schematic",
+    "interactive"
+  ],
+  "author": "Andrew Joslin <ajoslin103@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "fabric": "^6.7.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
