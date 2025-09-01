@@ -1,6 +1,12 @@
 {
   "name": "@23/schematic",
   "version": "0.1.0",
+  "description": "A fabric.js library for working with fabric objects above a coordinate plane",
   "license": "MIT",
-  "exports": "./index.d.ts"
+  "exports": {
+    "types": "./index.d.ts",
+    "import": "./dist/schematic.esm.js",
+    "require": "./dist/schematic.cjs.js"
+  },
+  "files": ["dist/**/*", "index.d.ts"]
 }

@@ -1,7 +1,31 @@
-// Type definitions for @ajoslin23/schematic
+// Type definitions for @23/schematic
 // Project: https://github.com/ajoslin103/schematic
 
-import { Canvas as FabricCanvas, Object as FabricObject, Point as FabricPoint } from 'fabric';
+// Define the minimal fabric types we need instead of importing them
+// This prevents the JSR import error with 'fabric'
+interface FabricCanvas {
+  add(object: any): FabricCanvas;
+  remove(object: any): FabricCanvas;
+  getElement(): HTMLCanvasElement;
+  setDimensions(dimensions: { width: number; height: number }): FabricCanvas;
+  setViewportTransform(vpt: number[]): FabricCanvas;
+  viewportTransform?: number[];
+  on(eventName: string, handler: Function): FabricCanvas;
+  off(eventName: string, handler?: Function): FabricCanvas;
+  upperCanvasEl?: HTMLCanvasElement;
+  lowerCanvasEl?: HTMLCanvasElement;
+  getContext(): CanvasRenderingContext2D;
+}
+
+interface FabricObject {
+  set(key: any, value?: any): FabricObject;
+  get(key: string): any;
+}
+
+interface FabricPoint {
+  x: number;
+  y: number;
+}
 
 // Base types
 export class Base {
