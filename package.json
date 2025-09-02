@@ -14,7 +14,8 @@
     "build": "rollup -c",
     "dev": "browser-sync start --server --files 'src/**/*.js,demo/**/*.html' --startPath demo/grid-demo.html",
     "prepublishOnly": "yarn build",
-    "publish:npm": "npm publish --access public"
+    "publish:npm": "npm publish --access public",
+    "publish:jsr": "npx jsr publish"
   },
   "repository": {
     "type": "git",
@@ -27,7 +28,7 @@
     "schematic",
     "interactive"
   ],
-  "author": "Andrew Joslin <ajoslin103@gmail.com>",
+  "author": "Allen Joslin <ajoslin103@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
     "fabric": "^6.7.1"
