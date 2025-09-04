@@ -45,15 +45,15 @@
       </div>
       <div style="margin-bottom:15px;">
         <label style="margin-right:15px;">
-          <input disabled type="checkbox" id="toggleGrid" checked>
+          <input type="checkbox" id="toggleGrid" checked>
           Show Grid
         </label>
         <label style="margin-right:15px;">
-          <input disabled type="checkbox" id="toggleZoomOnOrigin" checked>
+          <input type="checkbox" id="toggleZoomOnOrigin" checked>
           Zoom on Origin
         </label>
         <label>
-          <input disabled type="checkbox" id="toggleScrollbars">
+          <input type="checkbox" id="toggleScrollbars">
           Show Scrollbars
         </label>
       </div>
@@ -212,6 +212,30 @@
           }
         };
         toggleScrollbars?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
+
+        // Persist-only: wire Show Scrollbars to schematic (no behavior)
+        const toggleZoomOnOrigin = document.getElementById('toggleZoomOnOrigin');
+        const syncZoomOnOriginPref = () => {
+          const checked = !!toggleZoomOnOrigin?.checked;
+          if (typeof schematic.setShowScrollbars === 'function') {
+            schematic.setShowScrollbars(checked);
+          }
+        };
+        toggleZoomOnOrigin?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
+
+        // Persist-only: wire Show Scrollbars to schematic (no behavior)
+        const toggleGrid = document.getElementById('toggleGrid');
+        const syncGridPref = () => {
+          const checked = !!toggleGrid?.checked;
+          if (typeof schematic.setShowScrollbars === 'function') {
+            schematic.setShowScrollbars(checked);
+          }
+        };
+        toggleGrid?.addEventListener('change', syncScrollbarsPref);
         // Initialize preference on load
         syncScrollbarsPref();
 
