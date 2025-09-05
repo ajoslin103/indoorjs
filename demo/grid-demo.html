@@ -94,10 +94,10 @@
       <div style="margin-bottom:15px;">
         <label style="margin-right:10px;">
           Units: 
-          <select id="uintsSelect" style="width:100px;">
-            <option selected value="POINTS">Points</option>
-            <option disabled value="IMPERIAL">Imperial</option>
-            <option disabled value="METRIC">Metric</option>
+          <select id="unitsSelect" style="width:100px;">
+            <option selected value="points">Points</option>
+            <option value="imperial">Imperial</option>
+            <option value="metric">Metric</option>
           </select>
         </label>
       </div>
@@ -114,7 +114,8 @@
         // Initialize schematic with grid enabled (size from container)
         const schematic = new Schematic(container, {
           gridEnabled: true, // Grid will be enabled by default
-          zoomDebounceDelay: 200 // Configure the zoom debounce delay
+          zoomDebounceDelay: 200, // Configure the zoom debounce delay
+          units: 'points' // Set default units to points
         });
         
         // Get the fabric instance from the schematic
@@ -303,6 +304,28 @@
         // Also listen for grid control changes
         schematic.on('grid:change', () => {
           console.log('Grid settings changed');
+          updateUIDisplay();
+        });
+        
+        // Units selector handling
+        const unitsSelect = document.getElementById('unitsSelect');
+        const syncUnits = () => {
+          const selectedUnits = unitsSelect?.value || 'points';
+          if (typeof schematic.setUnits === 'function') {
+            schematic.setUnits(selectedUnits);
+          }
+        };
+        unitsSelect?.addEventListener('change', syncUnits);
+        // Initialize units on load
+        syncUnits();
+        
+        // Listen for units change events from Schematic
+        schematic.on('units:change', (data) => {
+          console.log('Units changed:', data.units);
+          // Update the dropdown if it doesn't match current units
+          if (unitsSelect && unitsSelect.value !== data.units) {
+            unitsSelect.value = data.units;
+          }
           updateUIDisplay();
         });
         

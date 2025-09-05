@@ -43,10 +43,14 @@ class Grid extends Base {
   axisX = null;
   axisY = null;
   
+  // Unit conversion constants
+  POINTS_PER_INCH = 72; // Standard DTP points per inch
+  POINTS_PER_CM = 28.35; // Points per centimeter (72/2.54)
+
   // Grid configuration
   type = 'linear';
   name = '';
-  units = '';
+  units = 'points'; // Default units: points, imperial, metric
   minZoom = -Infinity;
   maxZoom = Infinity;
   min = -Infinity;
@@ -315,6 +319,72 @@ class Grid extends Base {
     }
     // draw state.labels
     this.drawLabels(state, ctx);
+  }
+
+  /**
+   * Set the units for the grid (points, imperial, or metric)
+   * @param {string} units - The units to use ('points', 'imperial', or 'metric')
+   * @return {Grid} - This instance for chaining
+   */
+  setUnits(units) {
+    if (!['points', 'imperial', 'metric'].includes(units)) {
+      console.warn(`Invalid units: ${units}. Using default 'points'.`);
+      units = 'points';
+    }
+    
+    const prevUnits = this.units;
+    
+    // Skip if units haven't changed
+    if (prevUnits === units) {
+      return this;
+    }
+    
+    // Store new units
+    this.units = units;
+    
+    // Adjust grid spacing based on unit type
+    if (prevUnits === 'points') {
+      // Converting from points to other units
+      if (units === 'imperial') {
+        // Convert point measurements to inches
+        this.distance = this.distance / this.POINTS_PER_INCH;
+      } else if (units === 'metric') {
+        // Convert point measurements to centimeters
+        this.distance = this.distance / this.POINTS_PER_CM;
+      }
+    } else if (prevUnits === 'imperial') {
+      // Converting from imperial to other units
+      if (units === 'points') {
+        // Convert inch measurements to points
+        this.distance = this.distance * this.POINTS_PER_INCH;
+      } else if (units === 'metric') {
+        // Convert inch measurements to cm (1 inch = 2.54 cm)
+        this.distance = this.distance * 2.54;
+      }
+    } else if (prevUnits === 'metric') {
+      // Converting from metric to other units
+      if (units === 'points') {
+        // Convert cm measurements to points
+        this.distance = this.distance * this.POINTS_PER_CM;
+      } else if (units === 'imperial') {
+        // Convert cm measurements to inches (1 cm = 0.3937 inches)
+        this.distance = this.distance / 2.54;
+      }
+    }
+    
+    // Update configuration and render the grid
+    this.updateConfiguration();
+    this.render();
+    
+    return this;
+  }
+
+  /**
+   * Get the current units setting
+   * @return {string} Current units ('points', 'imperial', or 'metric')
+   */
+  getUnits() {
+    return this.units;
   }
 
   drawLabels(state, ctx) {

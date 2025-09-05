@@ -16,7 +16,9 @@ export class Schematic extends Base {
       // Control whether zoom is applied around viewport center (true) or mouse position (false)
       zoomOnCenter: false,
       // Persisted UI hint: whether to show native scrollbars. No behavior yet.
-      showScrollbars: false
+      showScrollbars: false,
+      // Default grid units (points, imperial, metric)
+      units: 'points'
     };
 
     // set defaults
@@ -145,6 +147,41 @@ export class Schematic extends Base {
       console.log('[schematic] showScrollbars changed:', this.showScrollbars);
     } catch {}
     this.emit && this.emit('scrollbars:change', { enabled: this.showScrollbars });
+    return this;
+  }
+
+  /**
+   * Get the current grid units
+   * @return {string} - Current units ('points', 'imperial', or 'metric')
+   */
+  getUnits() {
+    return this.units;
+  }
+
+  /**
+   * Set the grid units and update the grid
+   * @param {string} units - The units to use ('points', 'imperial', or 'metric')
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setUnits(units) {
+    if (!['points', 'imperial', 'metric'].includes(units)) {
+      console.warn(`Invalid units: ${units}. Using default 'points'.`);
+      units = 'points';
+    }
+    
+    if (this.units === units) return this;
+    this.units = units;
+    
+    // Update grid units if grid exists
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.mapInstance.grid.setUnits(units);
+    }
+    
+    try {
+      console.log('[schematic] units changed:', this.units);
+    } catch {}
+    
+    this.emit && this.emit('units:change', { units: this.units });
     return this;
   }
 
