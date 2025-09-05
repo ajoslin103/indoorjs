@@ -120,7 +120,7 @@ export interface SchematicOptions {
   container?: HTMLElement;
   width?: number;
   height?: number;
-  showGrid?: boolean;
+  gridEnabled?: boolean;
   gridStep?: number;
   gridScale?: number;
   zoomDebounceDelay?: number;
@@ -145,7 +145,18 @@ export class Schematic extends Base {
   setZoomLimits(min: number, max: number): void;
   setOriginPin(origin: string, margin: number): void;
   resetView(): void;
-  showGrid(visible: boolean): void;
+  
+  // Grid visibility methods
+  setShowGrid(enabled: boolean): void;
+  getShowGrid(): boolean;
+  toggleGridVisibility(visible: boolean): void; // Implementation method
+  
+  // Zoom center preference methods
+  getZoomOnCenter(): boolean;
+  setZoomOnCenter(enabled: boolean): void;
+  
+  // Scrollbar visibility methods
+  getShowScrollbars(): boolean;
   setShowScrollbars(show: boolean): void;
 }
 

@@ -54,7 +54,7 @@ export class Map extends Base {
     this.dx = 0;
     this.dy = 0;
 
-    if (this.showGrid) {
+    if (this.gridEnabled) {
       this.addGrid();
     }
 

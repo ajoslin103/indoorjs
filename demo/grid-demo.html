@@ -49,7 +49,7 @@
           Show Grid
         </label>
         <label style="margin-right:15px;">
-          <input type="checkbox" id="toggleZoomOnOrigin" checked>
+          <input type="checkbox" id="toggleZoomOnCenter" checked>
           Zoom on Origin
         </label>
         <label>
@@ -113,7 +113,7 @@
         
         // Initialize schematic with grid enabled (size from container)
         const schematic = new Schematic(container, {
-          showGrid: true, // Grid will be enabled by default
+          gridEnabled: true, // Grid will be enabled by default
           zoomDebounceDelay: 200 // Configure the zoom debounce delay
         });
         
@@ -215,24 +215,24 @@
         // Initialize preference on load
         syncScrollbarsPref();
 
-        // Persist-only: wire Show Scrollbars to schematic (no behavior)
-        const toggleZoomOnOrigin = document.getElementById('toggleZoomOnOrigin');
-        const syncZoomOnOriginPref = () => {
-          const checked = !!toggleZoomOnOrigin?.checked;
-          if (typeof schematic.setShowScrollbars === 'function') {
-            schematic.setShowScrollbars(checked);
+        // Persist-only: wire Zoom On Origin to schematic (no behavior)
+        const toggleZoomOnCenter = document.getElementById('toggleZoomOnCenter');
+        const syncZoomOnCenterPref = () => {
+          const checked = !!toggleZoomOnCenter?.checked;
+          if (typeof schematic.setZoomOnCenter === 'function') {
+            schematic.setZoomOnCenter(checked);
           }
         };
-        toggleZoomOnOrigin?.addEventListener('change', syncScrollbarsPref);
+        toggleZoomOnCenter?.addEventListener('change', syncScrollbarsPref);
         // Initialize preference on load
         syncScrollbarsPref();
 
-        // Persist-only: wire Show Scrollbars to schematic (no behavior)
+        // Persist-only: wire Show Grid to schematic (no behavior)
         const toggleGrid = document.getElementById('toggleGrid');
-        const syncGridPref = () => {
+        const syncShowGridPref = () => {
           const checked = !!toggleGrid?.checked;
-          if (typeof schematic.setShowScrollbars === 'function') {
-            schematic.setShowScrollbars(checked);
+          if (typeof schematic.setShowGrid === 'function') {
+            schematic.setShowGrid(checked);
           }
         };
         toggleGrid?.addEventListener('change', syncScrollbarsPref);

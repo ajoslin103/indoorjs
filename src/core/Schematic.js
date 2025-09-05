@@ -12,7 +12,7 @@ export class Schematic extends Base {
     super(options);
 
     this.defaults = {
-      showGrid: true,
+      gridEnabled: true,
       // Control whether zoom is applied around viewport center (true) or mouse position (false)
       zoomOnCenter: false,
       // Persisted UI hint: whether to show native scrollbars. No behavior yet.
@@ -73,8 +73,70 @@ export class Schematic extends Base {
     }
   }
 
-  // Persist a UI preference for showing native scrollbars.
-  // This does not implement any behavior yet; it only logs and emits an event.
+  /**
+   * Get the gridEnabled property
+   * @return {boolean} - Current gridEnabled state
+   */
+  getShowGrid() {
+    return !!this.gridEnabled;
+  }
+
+  /**
+   * Set the gridEnabled property and update UI accordingly
+   * @param {boolean} enabled - Whether to show the grid
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setShowGrid(enabled) {
+    const next = !!enabled;
+    if (this.gridEnabled === next) return this;
+    this.gridEnabled = next;
+    // Call the grid visibility toggle implementation
+    this.toggleGridVisibility(next);
+    try {
+      console.log('[schematic] gridEnabled changed:', this.gridEnabled);
+    } catch {}
+    this.emit && this.emit('grid:change', { enabled: this.gridEnabled });
+    return this;
+  }
+
+  /**
+   * Get the zoomOnCenter property
+   * @return {boolean} - Current zoomOnCenter state
+   */
+  getZoomOnCenter() {
+    return !!this.zoomOnCenter;
+  }
+
+  /**
+   * Set the zoomOnCenter property
+   * @param {boolean} enabled - Whether to zoom on center
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setZoomOnCenter(enabled) {
+    const next = !!enabled;
+    if (this.zoomOnCenter === next) return this;
+    this.zoomOnCenter = next;
+    try {
+      console.log('[schematic] zoomOnCenter changed:', this.zoomOnCenter);
+    } catch {}
+    this.emit && this.emit('zoom:settings:change', { zoomOnCenter: this.zoomOnCenter });
+    return this;
+  }
+
+  /**
+   * Get the showScrollbars property
+   * @return {boolean} - Current showScrollbars state
+   */
+  getShowScrollbars() {
+    return !!this.showScrollbars;
+  }
+
+  /**
+   * Persist a UI preference for showing native scrollbars.
+   * This does not implement any behavior yet; it only logs and emits an event.
+   * @param {boolean} enabled - Whether to show scrollbars
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
   setShowScrollbars(enabled) {
     const next = !!enabled;
     if (this.showScrollbars === next) return this;
@@ -282,7 +344,7 @@ export class Schematic extends Base {
    * @param {boolean} visible - Whether the grid should be visible
    * @return {Schematic} - Returns this Schematic instance for chaining
    */
-  showGrid(visible) {
+  toggleGridVisibility(visible) {
     // Add grid when turning on
     if (visible && this.mapInstance && !this.mapInstance.grid) {
       this.mapInstance.addGrid();
@@ -300,6 +362,7 @@ export class Schematic extends Base {
 
     return this;
   }
+  
   
   /**
    * Register event listeners for map interactions
