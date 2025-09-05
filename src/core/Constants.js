@@ -17,7 +17,6 @@ export const MAP = {
   zoomEnabled: true,
   selectEnabled: true,
   mode: Modes.SELECT
-  // showGrid removed - using gridEnabled instead
 };
 
 /**
