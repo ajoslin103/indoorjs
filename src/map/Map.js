@@ -54,7 +54,7 @@ export class Map extends Base {
     this.dx = 0;
     this.dy = 0;
 
-    if (this.showGrid) {
+    if (this.gridEnabled) {
       this.addGrid();
     }
 
@@ -63,7 +63,7 @@ export class Map extends Base {
 
   }
 
-  addGrid(gridControl) {
+  addGrid() {
     // Create grid using the fabric canvas context
     this.grid = new Grid(this.context, this);
     
@@ -83,11 +83,6 @@ export class Map extends Base {
         this.grid.render();
       }
     });
-    
-    // Apply grid control settings if provided
-    if (gridControl) {
-      gridControl.applyToGrid(this.grid);
-    }
     
     // Initial draw
     this.grid.render();

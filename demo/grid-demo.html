@@ -35,7 +35,7 @@
 
     <!-- Load Fabric.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/fabric@6/dist/index.min.js"></script>
-    <!-- Load UMD build of schematic to avoid ESM bare import of 'fabric' in browser -->
+    <!-- Load UMD build of schematic to avoid CORS issues in browser -->
     <script src="../dist/schematic.umd.js"></script>
   </head>
 <body>
@@ -45,15 +45,15 @@
       </div>
       <div style="margin-bottom:15px;">
         <label style="margin-right:15px;">
-          <input disabled type="checkbox" id="toggleGrid" checked>
+          <input type="checkbox" id="toggleGrid" checked>
           Show Grid
         </label>
         <label style="margin-right:15px;">
-          <input disabled type="checkbox" id="toggleZoomOnOrigin" checked>
+          <input type="checkbox" id="toggleZoomOnCenter" checked>
           Zoom on Origin
         </label>
         <label>
-          <input disabled type="checkbox" id="toggleScrollbars">
+          <input type="checkbox" id="toggleScrollbars">
           Show Scrollbars
         </label>
       </div>
@@ -94,10 +94,10 @@
       <div style="margin-bottom:15px;">
         <label style="margin-right:10px;">
           Units: 
-          <select id="uintsSelect" style="width:100px;">
-            <option selected value="POINTS">Points</option>
-            <option disabled value="IMPERIAL">Imperial</option>
-            <option disabled value="METRIC">Metric</option>
+          <select id="unitsSelect" style="width:100px;">
+            <option selected value="points">Points</option>
+            <option value="imperial">Imperial</option>
+            <option value="metric">Metric</option>
           </select>
         </label>
       </div>
@@ -113,8 +113,9 @@
         
         // Initialize schematic with grid enabled (size from container)
         const schematic = new Schematic(container, {
-          showGrid: true, // Grid will be enabled by default
-          zoomDebounceDelay: 200 // Configure the zoom debounce delay
+          gridEnabled: true, // Grid will be enabled by default
+          zoomDebounceDelay: 200, // Configure the zoom debounce delay
+          units: 'points' // Set default units to points
         });
         
         // Get the fabric instance from the schematic
@@ -185,15 +186,16 @@
         const minZoom = document.getElementById('minZoomInput');
         const maxZoom = document.getElementById('maxZoomInput');
         const updateZoom = () => {
-          const min = Math.max(0.01, Number(minZoom.value) || 0.01);
-          const max = Math.max(min + 0.01, Number(maxZoom.value) || 20);
+          // No zoom clamping - simply use the input values directly
+          const zoomValue = Number(minZoom.value) || 0.01;
+          const maxValue = Number(maxZoom.value) || 20;
           
-          // Update zoom limits using Schematic's method
-          schematic.setZoomLimits(min, max);
+          // Update zoom without limits
+          schematic.setZoomLimits(-Infinity, Infinity);
           
-          // Set current zoom to ensure it's within limits
+          // Set current zoom without clamping
           const currentZoom = mapInstance.zoom || 1.0;
-          schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
+          schematic.setZoom(currentZoom);
         };
         
         // Add event listeners for zoom controls
@@ -215,10 +217,34 @@
         // Initialize preference on load
         syncScrollbarsPref();
 
+        // Persist-only: wire Zoom On Origin to schematic (no behavior)
+        const toggleZoomOnCenter = document.getElementById('toggleZoomOnCenter');
+        const syncZoomOnCenterPref = () => {
+          const checked = !!toggleZoomOnCenter?.checked;
+          if (typeof schematic.setZoomOnCenter === 'function') {
+            schematic.setZoomOnCenter(checked);
+          }
+        };
+        toggleZoomOnCenter?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
+
+        // Persist-only: wire Show Grid to schematic (no behavior)
+        const toggleGrid = document.getElementById('toggleGrid');
+        const syncShowGridPref = () => {
+          const checked = !!toggleGrid?.checked;
+          if (typeof schematic.setShowGrid === 'function') {
+            schematic.setShowGrid(checked);
+          }
+        };
+        toggleGrid?.addEventListener('change', syncScrollbarsPref);
+        // Initialize preference on load
+        syncScrollbarsPref();
+
         // Add sample content to demonstrate the library using Schematic's API
         const circle = new fabric.Circle({
-          left: 0,
-          top: 0,
+          left: 100, // is center (see originX)
+          top: 100, // is center (see originy)
           radius: 50,
           fill: '#f8f8f8',
           stroke: '#999',
@@ -233,8 +259,8 @@
         
         // Add another object to verify objects are being added correctly
         const rect = new fabric.Rect({
-          left: 100,
-          top: 100,
+          left: 100, // is center (see originX)
+          top: 100, // is center (see originy)
           width: 80,
           height: 60,
           fill: '#ddf',
@@ -279,6 +305,28 @@
         // Also listen for grid control changes
         schematic.on('grid:change', () => {
           console.log('Grid settings changed');
+          updateUIDisplay();
+        });
+        
+        // Units selector handling
+        const unitsSelect = document.getElementById('unitsSelect');
+        const syncUnits = () => {
+          const selectedUnits = unitsSelect?.value || 'points';
+          if (typeof schematic.setUnits === 'function') {
+            schematic.setUnits(selectedUnits);
+          }
+        };
+        unitsSelect?.addEventListener('change', syncUnits);
+        // Initialize units on load
+        syncUnits();
+        
+        // Listen for units change events from Schematic
+        schematic.on('units:change', (data) => {
+          console.log('Units changed:', data.units);
+          // Update the dropdown if it doesn't match current units
+          if (unitsSelect && unitsSelect.value !== data.units) {
+            unitsSelect.value = data.units;
+          }
           updateUIDisplay();
         });
         

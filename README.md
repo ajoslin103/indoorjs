@@ -16,7 +16,7 @@ Your Application -> The Schematic -> The Map
 
 `Schematic` is the main entry point recommended for applications. It wraps a `Map` instance, exposing the underlying Fabric.js canvas via `schematic.fabricCanvas`, and forwards convenient methods and events for zooming, panning, and grid control.
 
-It creates and owns the [Fabric.js](https://fabricjs.com/) canvas through the `Map`, provides event helpers (e.g. `on`, `off`, `once`, `emit`), and high-level controls like `setZoom()`, `setZoomLimits(min,max)`, `resetView()`, `setOriginPin(pin, margin)`, and `showGrid(true/false)`.
+It creates and owns the [Fabric.js](https://fabricjs.com/) canvas through the `Map`, provides event helpers (e.g. `on`, `off`, `once`, `emit`), and high-level controls like `setZoom()`, `setZoomLimits(min,max)`, `resetView()`, `setOriginPin(pin, margin)`, and `setShowGrid(true/false)`.
 
 Interactions supported by default:
 - Mouse wheel zoom with clamped limits; hold Alt/Option to zoom around the mouse position.
@@ -72,7 +72,7 @@ import { Schematic } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
 const schematic = new Schematic(container, {
-  showGrid: true,
+  setShowGrid: true,
   zoomDebounceDelay: 200
 });
 
@@ -99,7 +99,7 @@ const container = document.getElementById('canvas-container');
 if (!container) throw new Error('Container not found');
 
 const schematic = new Schematic(container, {
-  showGrid: true,
+  setShowGrid: true,
   zoomDebounceDelay: 200
 });
 
@@ -125,7 +125,7 @@ schematic.fabric.add(circle);
 import { Map } from '@ajoslin23/schematic';
 
 const container = document.getElementById('canvas-container');
-const map = new Map(container, { showGrid: true });
+const map = new Map(container, { setShowGrid: true });
 
 // Access Fabric.js instance
 const fabricCanvas = map.fabricCanvas;
@@ -149,7 +149,7 @@ fabricCanvas.add(circle);
     - `setZoomLimits(min, max)`
     - `resetView()`
     - `setOriginPin(pin, margin)` and `setOriginScreen(x, y)`
-    - `showGrid(visible)`
+    - `setShowGrid(visible)`
     - `addObject(obj)`, `removeObject(obj)` (delegate to `Map`)
 
 - **`Map`** (lower-level): manages Fabric canvas and grid sync.

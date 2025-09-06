@@ -12,6 +12,15 @@ import {
   calculateLabelPosition,
   calculateTickPoints
 } from './grid-calcs.js';
+import {
+  POINTS_PER_INCH,
+  POINTS_PER_CM,
+  calculateMaxZoom,
+  calculateGridSpacing,
+  calculateLabelDensity,
+  formatValueByUnits,
+  convertDistance
+} from './grid-units.js';
 
 /**
  * The Grid component uses the canvas element's 2D drawing context
@@ -43,10 +52,14 @@ class Grid extends Base {
   axisX = null;
   axisY = null;
   
+  // Unit conversion constants
+  POINTS_PER_INCH = POINTS_PER_INCH; // Standard DTP points per inch
+  POINTS_PER_CM = POINTS_PER_CM; // Points per centimeter (72/2.54)
+
   // Grid configuration
   type = 'linear';
   name = '';
-  units = '';
+  units = 'points'; // Default units: points, imperial, metric
   minZoom = -Infinity;
   maxZoom = Infinity;
   min = -Infinity;
@@ -82,8 +95,20 @@ class Grid extends Base {
   constructor(context, opts) {
     super(opts);
     this.context = context;
+    
+    // Immediate debug to verify grid-units.js integration
+    console.log('[Grid-DEBUG] Grid class instantiated with units support');
+    console.log('[Grid-DEBUG] Units module functions available:', {
+      convertDistance: typeof convertDistance === 'function',
+      formatValueByUnits: typeof formatValueByUnits === 'function',
+      calculateGridSpacing: typeof calculateGridSpacing === 'function'
+    });
+    
     this.setDefaults();
     this.updateConfiguration(opts);
+    
+    // Force a units log
+    console.log('[Grid-DEBUG] Initial units:', this.units);
   }
 
   render() {
@@ -115,6 +140,17 @@ class Grid extends Base {
   updateConfiguration(opts) {
     if (!opts) opts = {};
     const shape = [this.width, this.height];
+    
+    // Update grid spacing based on units and zoom level
+    if (this.units && this.zoom) {
+      console.log(`[Grid] Calculating optimal spacing for units: ${this.units}, zoom: ${this.zoom}`);
+      const optimalSpacing = calculateGridSpacing(this.units, this.zoom, this.pixelRatio);
+      console.log(`[Grid] Optimal spacing calculated: ${optimalSpacing}`);
+      if (optimalSpacing > 0) {
+        this.distance = optimalSpacing;
+        console.log(`[Grid] Grid distance updated to: ${this.distance}`);
+      }
+    }
 
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
@@ -317,6 +353,58 @@ class Grid extends Base {
     this.drawLabels(state, ctx);
   }
 
+  /**
+   * Set the units for the grid (points, imperial, or metric)
+   * @param {string} units - The units to use ('points', 'imperial', or 'metric')
+   * @return {Grid} - This instance for chaining
+   */
+  setUnits(units) {
+    if (!['points', 'imperial', 'metric'].includes(units)) {
+      console.warn(`Invalid units: ${units}. Using default 'points'.`);
+      units = 'points';
+    }
+    
+    const prevUnits = this.units;
+    
+    // Skip if units haven't changed
+    if (prevUnits === units) {
+      return this;
+    }
+    
+    // Store new units
+    this.units = units;
+    
+    // Convert grid spacing to the new unit system
+    console.log(`[Grid] Converting units from ${prevUnits} to ${units}, distance before: ${this.distance}`);
+    this.distance = convertDistance(this.distance, prevUnits, units);
+    console.log(`[Grid] After conversion: distance = ${this.distance}`);
+    
+    // Update max zoom based on minimum natural increments
+    const previousMaxZoom = this.maxZoom;
+    this.maxZoom = calculateMaxZoom(units, this.pixelRatio, this.maxZoom);
+    console.log(`[Grid] Max zoom updated: ${previousMaxZoom} → ${this.maxZoom} for units: ${units}`);
+    
+    // If current zoom exceeds new max zoom, adjust it
+    if (this.zoom > this.maxZoom) {
+      console.log(`[Grid] Current zoom (${this.zoom}) exceeds max zoom, clamping to ${this.maxZoom}`);
+      this.zoom = this.maxZoom;
+    }
+    
+    // Update configuration and render the grid
+    this.updateConfiguration();
+    this.render();
+    
+    return this;
+  }
+
+  /**
+   * Get the current units setting
+   * @return {string} Current units ('points', 'imperial', or 'metric')
+   */
+  getUnits() {
+    return this.units;
+  }
+
   drawLabels(state, ctx) {
     if (state.labels) {
       const [width, height] = state.shape;
@@ -330,10 +418,18 @@ class Grid extends Base {
       
       const isOpp = state.coordinate.orientation === 'y' && !state.opposite.disabled;
       
+      // Calculate label density based on zoom level
+      console.log(`[Grid] Calculating label density for units: ${this.units}, zoom: ${this.zoom}`);
+      const labelDensity = calculateLabelDensity(this.units, this.zoom);
+      console.log(`[Grid] Label density calculated: ${labelDensity} (will show 1 label per ${labelDensity} grid lines)`);
+      
       for (let i = 0; i < state.labels.length; i += 1) {
         let label = state.labels[i];
         if (label == null) continue;
 
+        // Skip some labels based on density
+        if (i % labelDensity !== 0 && i !== 0) continue;
+        
         if (isOpp && almost(state.lines[i], state.opposite.coordinate.axisOrigin)) continue;
 
         const textWidth = ctx.measureText(label).width;
@@ -348,7 +444,18 @@ class Grid extends Base {
           label *= -1;
         }
         
-        ctx.fillText(label, textLeft, textTop);
+        // Debug the label before formatting to see if metric labels are being passed correctly
+        console.log(`[Grid-CRITICAL] PRE-FORMAT LABEL: value=${label}, type=${typeof label}, units=${this.units}`);
+        
+        // Format the label based on current units
+        const formattedLabel = formatValueByUnits(label, this.units);
+        
+        // Debug first few labels only to avoid console spam
+        if (i < 5) {
+          console.log(`[Grid] Label formatting: ${label} → ${formattedLabel} (units: ${this.units})`);
+        }
+        
+        ctx.fillText(formattedLabel, textLeft, textTop);
       }
     }
   }

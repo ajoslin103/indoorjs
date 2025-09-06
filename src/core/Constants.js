@@ -16,8 +16,7 @@ export const MAP = {
   gridEnabled: true,
   zoomEnabled: true,
   selectEnabled: true,
-  mode: Modes.SELECT,
-  showGrid: true
+  mode: Modes.SELECT
 };
 
 /**

@@ -93,6 +93,7 @@ export class Grid extends Base {
   showAxis: boolean;
   axisWidth: number;
   lineWidth: number;
+  units: 'points' | 'imperial' | 'metric';
   
   initialize(): void;
   recalculate(): void;
@@ -101,6 +102,8 @@ export class Grid extends Base {
   setStep(step: number): void;
   setScale(scale: number): void;
   setSize(width: number, height: number): void;
+  setUnits(units: 'points' | 'imperial' | 'metric'): Grid;
+  getUnits(): 'points' | 'imperial' | 'metric';
   draw(): void;
   clear(): void;
 }
@@ -120,11 +123,12 @@ export interface SchematicOptions {
   container?: HTMLElement;
   width?: number;
   height?: number;
-  showGrid?: boolean;
+  gridEnabled?: boolean;
   gridStep?: number;
   gridScale?: number;
   zoomDebounceDelay?: number;
   zoomOnCenter?: boolean;
+  units?: 'points' | 'imperial' | 'metric';
 }
 
 export class Schematic extends Base {
@@ -145,8 +149,23 @@ export class Schematic extends Base {
   setZoomLimits(min: number, max: number): void;
   setOriginPin(origin: string, margin: number): void;
   resetView(): void;
-  showGrid(visible: boolean): void;
+  
+  // Grid visibility methods
+  setShowGrid(enabled: boolean): void;
+  getShowGrid(): boolean;
+  toggleGridVisibility(visible: boolean): void; // Implementation method
+  
+  // Zoom center preference methods
+  getZoomOnCenter(): boolean;
+  setZoomOnCenter(enabled: boolean): void;
+  
+  // Scrollbar visibility methods
+  getShowScrollbars(): boolean;
   setShowScrollbars(show: boolean): void;
+  
+  // Units methods
+  getUnits(): 'points' | 'imperial' | 'metric';
+  setUnits(units: 'points' | 'imperial' | 'metric'): void;
 }
 
 export function schematic(container: HTMLElement | string, options?: SchematicOptions): Schematic;

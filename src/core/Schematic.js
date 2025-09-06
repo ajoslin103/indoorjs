@@ -12,11 +12,13 @@ export class Schematic extends Base {
     super(options);
 
     this.defaults = {
-      showGrid: true,
+      gridEnabled: true,
       // Control whether zoom is applied around viewport center (true) or mouse position (false)
       zoomOnCenter: false,
       // Persisted UI hint: whether to show native scrollbars. No behavior yet.
-      showScrollbars: false
+      showScrollbars: false,
+      // Default grid units (points, imperial, metric)
+      units: 'points'
     };
 
     // set defaults
@@ -73,8 +75,70 @@ export class Schematic extends Base {
     }
   }
 
-  // Persist a UI preference for showing native scrollbars.
-  // This does not implement any behavior yet; it only logs and emits an event.
+  /**
+   * Get the gridEnabled property
+   * @return {boolean} - Current gridEnabled state
+   */
+  getShowGrid() {
+    return !!this.gridEnabled;
+  }
+
+  /**
+   * Set the gridEnabled property and update UI accordingly
+   * @param {boolean} enabled - Whether to show the grid
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setShowGrid(enabled) {
+    const next = !!enabled;
+    if (this.gridEnabled === next) return this;
+    this.gridEnabled = next;
+    // Call the grid visibility toggle implementation
+    this.toggleGridVisibility(next);
+    try {
+      console.log('[schematic] gridEnabled changed:', this.gridEnabled);
+    } catch {}
+    this.emit && this.emit('grid:change', { enabled: this.gridEnabled });
+    return this;
+  }
+
+  /**
+   * Get the zoomOnCenter property
+   * @return {boolean} - Current zoomOnCenter state
+   */
+  getZoomOnCenter() {
+    return !!this.zoomOnCenter;
+  }
+
+  /**
+   * Set the zoomOnCenter property
+   * @param {boolean} enabled - Whether to zoom on center
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setZoomOnCenter(enabled) {
+    const next = !!enabled;
+    if (this.zoomOnCenter === next) return this;
+    this.zoomOnCenter = next;
+    try {
+      console.log('[schematic] zoomOnCenter changed:', this.zoomOnCenter);
+    } catch {}
+    this.emit && this.emit('zoom:settings:change', { zoomOnCenter: this.zoomOnCenter });
+    return this;
+  }
+
+  /**
+   * Get the showScrollbars property
+   * @return {boolean} - Current showScrollbars state
+   */
+  getShowScrollbars() {
+    return !!this.showScrollbars;
+  }
+
+  /**
+   * Persist a UI preference for showing native scrollbars.
+   * This does not implement any behavior yet; it only logs and emits an event.
+   * @param {boolean} enabled - Whether to show scrollbars
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
   setShowScrollbars(enabled) {
     const next = !!enabled;
     if (this.showScrollbars === next) return this;
@@ -83,6 +147,41 @@ export class Schematic extends Base {
       console.log('[schematic] showScrollbars changed:', this.showScrollbars);
     } catch {}
     this.emit && this.emit('scrollbars:change', { enabled: this.showScrollbars });
+    return this;
+  }
+
+  /**
+   * Get the current grid units
+   * @return {string} - Current units ('points', 'imperial', or 'metric')
+   */
+  getUnits() {
+    return this.units;
+  }
+
+  /**
+   * Set the grid units and update the grid
+   * @param {string} units - The units to use ('points', 'imperial', or 'metric')
+   * @return {Schematic} - Returns this Schematic instance for chaining
+   */
+  setUnits(units) {
+    if (!['points', 'imperial', 'metric'].includes(units)) {
+      console.warn(`Invalid units: ${units}. Using default 'points'.`);
+      units = 'points';
+    }
+    
+    if (this.units === units) return this;
+    this.units = units;
+    
+    // Update grid units if grid exists
+    if (this.mapInstance && this.mapInstance.grid) {
+      this.mapInstance.grid.setUnits(units);
+    }
+    
+    try {
+      console.log('[schematic] units changed:', this.units);
+    } catch {}
+    
+    this.emit && this.emit('units:change', { units: this.units });
     return this;
   }
 
@@ -282,7 +381,7 @@ export class Schematic extends Base {
    * @param {boolean} visible - Whether the grid should be visible
    * @return {Schematic} - Returns this Schematic instance for chaining
    */
-  showGrid(visible) {
+  toggleGridVisibility(visible) {
     // Add grid when turning on
     if (visible && this.mapInstance && !this.mapInstance.grid) {
       this.mapInstance.addGrid();
@@ -300,6 +399,7 @@ export class Schematic extends Base {
 
     return this;
   }
+  
   
   /**
    * Register event listeners for map interactions
@@ -574,13 +674,11 @@ export class Schematic extends Base {
       // Calculate the new zoom level based on wheel direction
       const currentZoom = this.mapInstance.zoom;
       const newZoom = direction > 0 ? currentZoom * zoomFactor : currentZoom / zoomFactor;
-      // Clamp the zoom level to the configured limits
-      const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
-
+      
       // Apply zoom
       // If Alt/Option is held, zoom around the mouse position to keep it stationary.
       // Otherwise, preserve existing behavior (anchor at screen position of world origin).
-      this.mapInstance.zoom = clampedZoom;
+      this.mapInstance.zoom = newZoom;
       const canvas = this.fabricCanvas;
       const vptBefore = canvas.viewportTransform;
       let point;
@@ -595,7 +693,7 @@ export class Schematic extends Base {
         const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
         point = new fabric.Point(originScreenX, originScreenY);
       }
-      canvas.zoomToPoint(point, clampedZoom);
+      canvas.zoomToPoint(point, newZoom);
 
       // Update grid viewport to reflect new transform (viewport center in world coords)
       const vptAfter = canvas.viewportTransform;
@@ -604,9 +702,9 @@ export class Schematic extends Base {
           const centerX = (canvas.width / 2 - vptAfter[4]) / vptAfter[0];
           const centerY = (canvas.height / 2 - vptAfter[5]) / vptAfter[3];
           const gridCenterY = -centerY;
-          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: clampedZoom });
+          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: newZoom });
         } else {
-          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
+          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: newZoom });
         }
         this.mapInstance.grid.render();
       }
@@ -614,8 +712,8 @@ export class Schematic extends Base {
       if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
 
       // Emit zoom events so UIs can update immediately
-      this.emit('zoom', { zoom: clampedZoom });
-      this.emit('zoom:change', { zoom: clampedZoom });
+      this.emit('zoom', { zoom: newZoom });
+      this.emit('zoom:change', { zoom: newZoom });
     }
     
     // Clear any existing timeout to reset debounce timer
@@ -678,18 +776,11 @@ export class Schematic extends Base {
    */
   setZoomLimits(min, max) {
     if (this.mapInstance) {
-      // Ensure valid values
-      const minZoom = Math.max(0.01, min || 0.01);
-      const maxZoom = Math.max(minZoom + 0.01, max || 20);
+      // Store the values directly without validation
+      this.mapInstance.minZoom = min;
+      this.mapInstance.maxZoom = max;
       
-      this.mapInstance.minZoom = minZoom;
-      this.mapInstance.maxZoom = maxZoom;
-      
-      // Constrain current zoom if needed
-      const currentZoom = this.mapInstance.zoom;
-      if (currentZoom < minZoom || currentZoom > maxZoom) {
-        this.setZoom(Math.max(minZoom, Math.min(maxZoom, currentZoom)));
-      }
+      // No constraining of current zoom
       
       this.mapInstance.update();
     }
