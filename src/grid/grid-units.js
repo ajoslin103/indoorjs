@@ -6,19 +6,20 @@
 // Constants
 export const POINTS_PER_INCH = 72; // Standard DTP points per inch
 export const POINTS_PER_CM = 28.35; // Points per centimeter (72/2.54)
+export const POINTS_PER_MM = 2.835; // Points per millimeter (POINTS_PER_CM/10)
 
 // Natural grid increments for each unit system
 export const NATURAL_INCREMENTS = {
   'points': [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000],
   'imperial': [1/16, 1/8, 1/4, 1/2, 1, 2, 6, 12, 36, 120], // inches, feet, yards
-  'metric': [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 1000] // cm scale (0.1cm = 1mm)
+  'metric': [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] // mm scale
 };
 
 // Minimum natural increment for each unit system
 export const MIN_NATURAL_INCREMENTS = {
   'points': 1,
   'imperial': 1/16, // 1/16 inch
-  'metric': 0.5 // 0.5 cm (5mm)
+  'metric': 1 // 1mm (was previously 5mm)
 };
 
 // Ideal spacing between grid lines in pixels
@@ -42,9 +43,9 @@ export function getUnitToPixelRatio(units, pixelRatio) {
       // 1 inch = 72 points, so at 72dpi, 1 inch = 72 pixels
       return POINTS_PER_INCH / pixelRatio;
     case 'metric':
-      // 1 cm = 28.35 points = 28.35 pixels at 72dpi
-      // (Fixing previous error that was dividing by 10)
-      return POINTS_PER_CM / pixelRatio;
+      // 1 mm = 2.835 points = 2.835 pixels at 72dpi
+      // Changing from cm to mm for finer metric control
+      return POINTS_PER_MM / pixelRatio;
     case 'points':
     default:
       // 1 point = 1 pixel at 72dpi
@@ -88,19 +89,19 @@ export function calculateGridSpacing(units, zoom, pixelRatio) {
   const inchEquivalents = {
     points: debugEquivalentSpacing.points / 72,
     imperial: debugEquivalentSpacing.imperial,
-    metric: debugEquivalentSpacing.metric / 2.54
+    metric: debugEquivalentSpacing.metric / 25.4 // mm to inches (25.4 mm = 1 inch)
   };
   
   console.log(`[Grid-Units] At zoom ${zoom}, ideal spacing equivalents (in inches):`); 
   console.log(`  - Points: ${debugEquivalentSpacing.points} points (${inchEquivalents.points} inches)`); 
   console.log(`  - Imperial: ${debugEquivalentSpacing.imperial} inches`); 
-  console.log(`  - Metric: ${debugEquivalentSpacing.metric} cm (${inchEquivalents.metric} inches)`); 
+  console.log(`  - Metric: ${debugEquivalentSpacing.metric} mm (${inchEquivalents.metric} inches)`); 
 
   // Calculate grid line density per inch
   const linesPerInch = {
     points: 1 / debugEquivalentSpacing.points * 72,  // Convert to lines per inch
     imperial: 1 / debugEquivalentSpacing.imperial,   // Already in inches
-    metric: 1 / debugEquivalentSpacing.metric * 2.54 // Convert cm to inches
+    metric: 1 / debugEquivalentSpacing.metric * 25.4 // Convert mm to inches (25.4 mm = 1 inch)
   };
   
   console.log(`[Grid-Units] Grid line density (lines per inch):`); 
@@ -130,10 +131,10 @@ export function calculateGridSpacing(units, zoom, pixelRatio) {
  * @return {number} The number of grid lines to skip between labels
  */
 export function calculateLabelDensity(units, zoom) {
-  // Simple algorithm: show fewer labels when zoomed out
-  if (zoom < 0.5) return 10;
-  if (zoom < 1) return 5;
-  if (zoom < 2) return 2;
+  // Updated algorithm: show more labels at lower zoom levels
+  if (zoom < 0.3) return 10;
+  if (zoom < 0.6) return 5;
+  if (zoom < 0.9) return 2;
   return 1;
 }
 
@@ -144,41 +145,56 @@ export function calculateLabelDensity(units, zoom) {
  * @return {string} The formatted value as a string
  */
 export function formatValueByUnits(value, units) {
+  // Add debugging to see what values are being passed
+  console.log(`[Grid-DEBUG] formatValueByUnits called with: value=${value}, units=${units}`);
+  
+  let result = '';
+  
   switch (units) {
     case 'imperial':
       if (value >= 12) {
         // Format as feet and inches
         const feet = Math.floor(value / 12);
         const inches = value % 12;
-        return inches === 0 ? `${feet}'` : `${feet}'${inches}"`;
+        result = inches === 0 ? `${feet}'` : `${feet}'${inches}"`;
       } else if (value < 1 && value > 0) {
         // Format as fractions for small values
-        if (Math.abs(value - 0.5) < 0.01) return `1/2"`;
-        if (Math.abs(value - 0.25) < 0.01) return `1/4"`;
-        if (Math.abs(value - 0.125) < 0.01) return `1/8"`;
-        if (Math.abs(value - 0.0625) < 0.01) return `1/16"`;
-        return `${value.toFixed(3)}"`;
+        if (Math.abs(value - 0.5) < 0.01) result = `1/2"`;
+        else if (Math.abs(value - 0.25) < 0.01) result = `1/4"`;
+        else if (Math.abs(value - 0.125) < 0.01) result = `1/8"`;
+        else if (Math.abs(value - 0.0625) < 0.01) result = `1/16"`;
+        else result = `${value.toFixed(3)}"`;
       } else {
-        return `${value}"`;
+        result = `${value}"`;
       }
+      break;
       
     case 'metric':
-      if (value >= 100) {
-        // Format as meters
-        return `${(value / 100).toFixed(1)}m`;
+      console.log(`[Grid-DEBUG] Formatting metric value: ${value}`);
+      if (value >= 1000) {
+        // Format as meters (1000mm = 1m)
+        result = `${(value / 1000).toFixed(1)}m`;
+      } else if (value >= 100) {
+        // Format as cm for larger values (100mm = 10cm)
+        result = `${(value / 10).toFixed(0)}cm`;
       } else if (value >= 10) {
-        // Format as decimeters/centimeters with no decimal
-        return `${value.toFixed(0)}cm`;
+        // Format as mm with no decimal
+        result = `${value.toFixed(0)}mm`;
       } else {
-        // Format as cm with one decimal for small values
-        return `${value.toFixed(value < 1 ? 1 : 0)}cm`;
+        // Format as mm with one decimal for small values
+        result = `${value.toFixed(value < 1 ? 1 : 0)}mm`;
       }
+      break;
       
     case 'points':
     default:
       // For points, just show the number
-      return `${Math.round(value)}`;
+      result = `${Math.round(value)}`;
+      break;
   }
+  
+  console.log(`[Grid-DEBUG] formatValueByUnits returning: ${result}`);
+  return result;
 }
 
 /**

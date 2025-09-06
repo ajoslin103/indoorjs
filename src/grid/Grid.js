@@ -444,6 +444,9 @@ class Grid extends Base {
           label *= -1;
         }
         
+        // Debug the label before formatting to see if metric labels are being passed correctly
+        console.log(`[Grid-CRITICAL] PRE-FORMAT LABEL: value=${label}, type=${typeof label}, units=${this.units}`);
+        
         // Format the label based on current units
         const formattedLabel = formatValueByUnits(label, this.units);
         
