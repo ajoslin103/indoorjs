@@ -70,11 +70,30 @@ export function getUnitToPixelRatio(units, pixelRatio) {
  * @return {number} The maximum allowed zoom level
  */
 export function calculateMaxZoom(units, pixelRatio, baseMaxZoom = 20) {
+  // Return infinite zoom - no constraints
+  return Infinity;
+}
+
+/**
+ * Calculate the minimum zoom level needed to properly display the minimum unit increment
+ * Based on the formula: zoom = DESIRED_PIXELS / (minIncrement * unitToPixelRatio)
+ * 
+ * @param {string} units - The current unit system ('points', 'imperial', or 'metric')
+ * @param {number} pixelRatio - The device pixel ratio
+ * @param {number} desiredPixels - How many pixels wide the minimum increment should be (default: 10)
+ * @return {number} The minimum zoom level required
+ */
+export function calculateMinZoomForDisplay(units, pixelRatio = 1, desiredPixels = 10) {
   const minIncrement = MIN_NATURAL_INCREMENTS[units];
   const unitToPixelRatio = getUnitToPixelRatio(units, pixelRatio);
   
-  const unitConstrainedMaxZoom = MIN_VISIBLE_PIXELS / (minIncrement * unitToPixelRatio);
-  return Math.min(baseMaxZoom, unitConstrainedMaxZoom);
+  // Calculate the minimum zoom required to display the minimum increment at desired pixel size
+  return desiredPixels / (minIncrement * unitToPixelRatio);
+  
+  // Known values for standard pixelRatio=1 and desiredPixels=10:
+  // - Points: 10.0 (1 point = 10 pixels)
+  // - Imperial: 2.22 (1/16 inch = 10 pixels)
+  // - Metric: 3.53 (1 mm = 10 pixels)
 }
 
 /**

@@ -186,15 +186,16 @@
         const minZoom = document.getElementById('minZoomInput');
         const maxZoom = document.getElementById('maxZoomInput');
         const updateZoom = () => {
-          const min = Math.max(0.01, Number(minZoom.value) || 0.01);
-          const max = Math.max(min + 0.01, Number(maxZoom.value) || 20);
+          // No zoom clamping - simply use the input values directly
+          const zoomValue = Number(minZoom.value) || 0.01;
+          const maxValue = Number(maxZoom.value) || 20;
           
-          // Update zoom limits using Schematic's method
-          schematic.setZoomLimits(min, max);
+          // Update zoom without limits
+          schematic.setZoomLimits(-Infinity, Infinity);
           
-          // Set current zoom to ensure it's within limits
+          // Set current zoom without clamping
           const currentZoom = mapInstance.zoom || 1.0;
-          schematic.setZoom(Math.max(min, Math.min(max, currentZoom)));
+          schematic.setZoom(currentZoom);
         };
         
         // Add event listeners for zoom controls

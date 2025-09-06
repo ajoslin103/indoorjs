@@ -674,13 +674,11 @@ export class Schematic extends Base {
       // Calculate the new zoom level based on wheel direction
       const currentZoom = this.mapInstance.zoom;
       const newZoom = direction > 0 ? currentZoom * zoomFactor : currentZoom / zoomFactor;
-      // Clamp the zoom level to the configured limits
-      const clampedZoom = Math.max(this.mapInstance.minZoom, Math.min(newZoom, this.mapInstance.maxZoom));
-
+      
       // Apply zoom
       // If Alt/Option is held, zoom around the mouse position to keep it stationary.
       // Otherwise, preserve existing behavior (anchor at screen position of world origin).
-      this.mapInstance.zoom = clampedZoom;
+      this.mapInstance.zoom = newZoom;
       const canvas = this.fabricCanvas;
       const vptBefore = canvas.viewportTransform;
       let point;
@@ -695,7 +693,7 @@ export class Schematic extends Base {
         const originScreenY = vptBefore ? vptBefore[5] : canvas.height / 2;
         point = new fabric.Point(originScreenX, originScreenY);
       }
-      canvas.zoomToPoint(point, clampedZoom);
+      canvas.zoomToPoint(point, newZoom);
 
       // Update grid viewport to reflect new transform (viewport center in world coords)
       const vptAfter = canvas.viewportTransform;
@@ -704,9 +702,9 @@ export class Schematic extends Base {
           const centerX = (canvas.width / 2 - vptAfter[4]) / vptAfter[0];
           const centerY = (canvas.height / 2 - vptAfter[5]) / vptAfter[3];
           const gridCenterY = -centerY;
-          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: clampedZoom });
+          this.mapInstance.grid.updateViewport({ x: centerX, y: gridCenterY, zoom: newZoom });
         } else {
-          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: clampedZoom });
+          this.mapInstance.grid.updateViewport({ x: 0, y: 0, zoom: newZoom });
         }
         this.mapInstance.grid.render();
       }
@@ -714,8 +712,8 @@ export class Schematic extends Base {
       if (typeof canvas.requestRenderAll === 'function') canvas.requestRenderAll();
 
       // Emit zoom events so UIs can update immediately
-      this.emit('zoom', { zoom: clampedZoom });
-      this.emit('zoom:change', { zoom: clampedZoom });
+      this.emit('zoom', { zoom: newZoom });
+      this.emit('zoom:change', { zoom: newZoom });
     }
     
     // Clear any existing timeout to reset debounce timer
@@ -778,18 +776,11 @@ export class Schematic extends Base {
    */
   setZoomLimits(min, max) {
     if (this.mapInstance) {
-      // Ensure valid values
-      const minZoom = Math.max(0.01, min || 0.01);
-      const maxZoom = Math.max(minZoom + 0.01, max || 20);
+      // Store the values directly without validation
+      this.mapInstance.minZoom = min;
+      this.mapInstance.maxZoom = max;
       
-      this.mapInstance.minZoom = minZoom;
-      this.mapInstance.maxZoom = maxZoom;
-      
-      // Constrain current zoom if needed
-      const currentZoom = this.mapInstance.zoom;
-      if (currentZoom < minZoom || currentZoom > maxZoom) {
-        this.setZoom(Math.max(minZoom, Math.min(maxZoom, currentZoom)));
-      }
+      // No constraining of current zoom
       
       this.mapInstance.update();
     }

@@ -19,7 +19,8 @@ import {
   calculateGridSpacing,
   calculateLabelDensity,
   formatValueByUnits,
-  convertDistance
+  convertDistance,
+  calculateMinZoomForDisplay
 } from './grid-units.js';
 
 /**
@@ -276,10 +277,120 @@ class Grid extends Base {
    * @return {Grid} This instance for chaining
    */
   draw() {
+    // Clear canvas before drawing
     this.context.clearRect(0, 0, this.width, this.height);
-    this.drawLines(this.state.x, this.context);
-    this.drawLines(this.state.y, this.context);
+    
+    // Calculate minimum zoom required for proper display of the smallest increment
+    const minZoomRequired = calculateMinZoomForDisplay(this.units, this.pixelRatio);
+    
+    // Log zoom levels for debugging
+    console.log(`[Grid] Drawing grid - Current zoom: ${this.zoom}, Minimum required: ${minZoomRequired}`);
+    
+    // Check if zoom is below the minimum required for this unit system
+    const lowZoomMode = this.zoom < minZoomRequired;
+    
+    if (lowZoomMode) {
+      console.log(`[Grid] Current zoom (${this.zoom}) is below minimum required (${minZoomRequired}) - Using simplified grid`);
+      // Draw a simplified grid
+      this.drawSimplifiedGrid();
+    } else {
+      // Draw the normal grid when zoom is sufficient
+      this.drawLines(this.state.x, this.context);
+      this.drawLines(this.state.y, this.context);
+    }
+    
     return this;
+  }
+  
+  /**
+   * Draw simplified grid for low zoom levels that respects viewport transform
+   * @private
+   */
+  drawSimplifiedGrid() {
+    const ctx = this.context;
+    const w = this.width;
+    const h = this.height;
+    
+    // Use the same coordinate transforms as regular grid
+    // This ensures simplified grid moves with objects
+    
+    // Save current context state
+    ctx.save();
+    
+    // Draw simplified grid lines using the same coordinate system as the full grid
+    // This ensures they move with zooming and panning
+    if (this.state.x && this.state.x.coordinate && this.state.y && this.state.y.coordinate) {
+      const xState = this.state.x;
+      const yState = this.state.y;
+      
+      // Calculate world origin in screen coordinates (where 0,0 should be)
+      const originScreenX = w/2 - this.center.x * this.zoom;
+      const originScreenY = h/2 + this.center.y * this.zoom;
+      
+      // Draw basic axis lines
+      ctx.beginPath();
+      
+      // X axis
+      ctx.moveTo(0, originScreenY);
+      ctx.lineTo(w, originScreenY);
+      
+      // Y axis
+      ctx.moveTo(originScreenX, 0);
+      ctx.lineTo(originScreenX, h);
+      
+      ctx.strokeStyle = 'rgba(120,120,200,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Add basic grid lines that move with pan/zoom
+      ctx.beginPath();
+      
+      // Get grid spacing in screen pixels
+      const gridSpacingWorld = calculateGridSpacing(this.units, this.zoom, this.pixelRatio);
+      const gridSpacingScreen = gridSpacingWorld * this.zoom;
+      
+      // Draw some basic grid lines based on current center and zoom
+      const linesCount = 5; // A few lines in each direction
+      
+      for (let i = -linesCount; i <= linesCount; i++) {
+        if (i === 0) continue; // Skip center lines (already drawn)
+        
+        // Horizontal lines
+        const yPos = originScreenY - i * gridSpacingScreen;
+        if (yPos >= 0 && yPos <= h) {
+          ctx.moveTo(0, yPos);
+          ctx.lineTo(w, yPos);
+        }
+        
+        // Vertical lines
+        const xPos = originScreenX + i * gridSpacingScreen;
+        if (xPos >= 0 && xPos <= w) {
+          ctx.moveTo(xPos, 0);
+          ctx.lineTo(xPos, h);
+        }
+      }
+      
+      ctx.strokeStyle = 'rgba(200,200,200,0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    // Display a message about zoom level - positioned in screen space
+    ctx.fillStyle = 'rgba(100,100,100,0.7)';
+    ctx.font = `300 ${this.fontSize}px ${this.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Calculate the required zoom percentage
+    const minZoomRequired = calculateMinZoomForDisplay(this.units, this.pixelRatio);
+    const percentOfRequired = Math.round((this.zoom / minZoomRequired) * 100);
+    
+    // Draw text overlay in screen space, not world space
+    const messageY = 30; // Position at top of screen
+    ctx.fillText(`Zoom in for ${this.units} grid (${percentOfRequired}% of required zoom)`, w/2, messageY);
+    ctx.fillText(`Current: ${this.zoom.toFixed(2)}x | Required: ${minZoomRequired.toFixed(2)}x`, w/2, messageY + 25);
+    
+    ctx.restore();
   }
 
   // lines instance draw
@@ -379,16 +490,9 @@ class Grid extends Base {
     this.distance = convertDistance(this.distance, prevUnits, units);
     console.log(`[Grid] After conversion: distance = ${this.distance}`);
     
-    // Update max zoom based on minimum natural increments
-    const previousMaxZoom = this.maxZoom;
-    this.maxZoom = calculateMaxZoom(units, this.pixelRatio, this.maxZoom);
-    console.log(`[Grid] Max zoom updated: ${previousMaxZoom} → ${this.maxZoom} for units: ${units}`);
-    
-    // If current zoom exceeds new max zoom, adjust it
-    if (this.zoom > this.maxZoom) {
-      console.log(`[Grid] Current zoom (${this.zoom}) exceeds max zoom, clamping to ${this.maxZoom}`);
-      this.zoom = this.maxZoom;
-    }
+    // No zoom clamping - remove max zoom constraints
+    console.log(`[Grid] No zoom clamping for units: ${units}`);
+    // Skip setting maxZoom and skip clamping current zoom value
     
     // Update configuration and render the grid
     this.updateConfiguration();
