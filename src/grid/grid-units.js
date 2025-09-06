@@ -146,50 +146,59 @@ export function calculateLabelDensity(units, zoom) {
  */
 export function formatValueByUnits(value, units) {
   // Add debugging to see what values are being passed
-  console.log(`[Grid-DEBUG] formatValueByUnits called with: value=${value}, units=${units}`);
+  console.log(`[Grid-DEBUG] formatValueByUnits called with: value=${value}, type=${typeof value}, units=${units}`);
+  
+  // Convert value to a number if it's not already
+  const numValue = typeof value !== 'number' ? Number(value) : value;
+  
+  // If conversion failed and resulted in NaN, return a safe fallback
+  if (isNaN(numValue)) {
+    console.warn(`[Grid-WARNING] Invalid value passed to formatValueByUnits: ${value}`);
+    return String(value || '0');
+  }
   
   let result = '';
   
   switch (units) {
     case 'imperial':
-      if (value >= 12) {
+      if (numValue >= 12) {
         // Format as feet and inches
-        const feet = Math.floor(value / 12);
-        const inches = value % 12;
+        const feet = Math.floor(numValue / 12);
+        const inches = numValue % 12;
         result = inches === 0 ? `${feet}'` : `${feet}'${inches}"`;
-      } else if (value < 1 && value > 0) {
+      } else if (numValue < 1 && numValue > 0) {
         // Format as fractions for small values
-        if (Math.abs(value - 0.5) < 0.01) result = `1/2"`;
-        else if (Math.abs(value - 0.25) < 0.01) result = `1/4"`;
-        else if (Math.abs(value - 0.125) < 0.01) result = `1/8"`;
-        else if (Math.abs(value - 0.0625) < 0.01) result = `1/16"`;
-        else result = `${value.toFixed(3)}"`;
+        if (Math.abs(numValue - 0.5) < 0.01) result = `1/2"`;
+        else if (Math.abs(numValue - 0.25) < 0.01) result = `1/4"`;
+        else if (Math.abs(numValue - 0.125) < 0.01) result = `1/8"`;
+        else if (Math.abs(numValue - 0.0625) < 0.01) result = `1/16"`;
+        else result = `${numValue.toFixed(3)}"`;
       } else {
-        result = `${value}"`;
+        result = `${numValue}"`;
       }
       break;
       
     case 'metric':
-      console.log(`[Grid-DEBUG] Formatting metric value: ${value}`);
-      if (value >= 1000) {
+      console.log(`[Grid-DEBUG] Formatting metric value: ${numValue}`);
+      if (numValue >= 1000) {
         // Format as meters (1000mm = 1m)
-        result = `${(value / 1000).toFixed(1)}m`;
-      } else if (value >= 100) {
+        result = `${(numValue / 1000).toFixed(1)}m`;
+      } else if (numValue >= 100) {
         // Format as cm for larger values (100mm = 10cm)
-        result = `${(value / 10).toFixed(0)}cm`;
-      } else if (value >= 10) {
+        result = `${(numValue / 10).toFixed(0)}cm`;
+      } else if (numValue >= 10) {
         // Format as mm with no decimal
-        result = `${value.toFixed(0)}mm`;
+        result = `${numValue.toFixed(0)}mm`;
       } else {
         // Format as mm with one decimal for small values
-        result = `${value.toFixed(value < 1 ? 1 : 0)}mm`;
+        result = `${numValue.toFixed(numValue < 1 ? 1 : 0)}mm`;
       }
       break;
       
     case 'points':
     default:
       // For points, just show the number
-      result = `${Math.round(value)}`;
+      result = `${Math.round(numValue)}`;
       break;
   }
   

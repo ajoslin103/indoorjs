@@ -242,8 +242,8 @@
 
         // Add sample content to demonstrate the library using Schematic's API
         const circle = new fabric.Circle({
-          left: 0,
-          top: 0,
+          left: 100, // is center (see originX)
+          top: 100, // is center (see originy)
           radius: 50,
           fill: '#f8f8f8',
           stroke: '#999',
@@ -258,8 +258,8 @@
         
         // Add another object to verify objects are being added correctly
         const rect = new fabric.Rect({
-          left: 100,
-          top: 100,
+          left: 100, // is center (see originX)
+          top: 100, // is center (see originy)
           width: 80,
           height: 60,
           fill: '#ddf',
