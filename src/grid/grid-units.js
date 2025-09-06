@@ -1,6 +1,15 @@
 /**
  * grid-units.js
  * Pure utility functions for unit-based grid calculations
+ *
+ * Minimum zoom levels required to represent the minimum measurement with 10 pixels:
+ * - Points Units: zoom = 10.0 (1 point = 10 pixels)
+ * - Imperial Units: zoom = 2.22 (1/16 inch = 10 pixels)
+ * - Metric Units: zoom = 3.53 (1 mm = 10 pixels)
+ *
+ * These values are calculated using: zoom = 10 / (minIncrement * unitToPixelRatio)
+ * where minIncrement is the smallest meaningful unit (1 point, 1/16 inch, 1 mm)
+ * and unitToPixelRatio is the conversion factor from units to screen pixels.
  */
 
 // Constants
