@@ -10,10 +10,16 @@ const gridStyle = {
   unit: 10,
   lines: (state) => {
     const coord = state.coordinate;
+    
     // eslint-disable-next-line no-multi-assign
     const step = state.step = scale(coord.distance * coord.zoom, coord.steps);
-    return range(Math.floor(state.offset / step) * step,
-      Math.ceil((state.offset + state.range) / step + 1) * step, step);
+    
+    const start = Math.floor(state.offset / step) * step;
+    const end = Math.ceil((state.offset + state.range) / step + 1) * step;
+    
+    const lines = range(start, end, step);
+    
+    return lines;
   },
   lineColor: (state) => {
     if (!state.lines) return;

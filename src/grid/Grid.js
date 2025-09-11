@@ -144,7 +144,15 @@ class Grid extends Base {
     // Update grid spacing based on units and zoom level
     if (this.units && this.zoom) {
       console.log(`[Grid] Calculating optimal spacing for units: ${this.units}, zoom: ${this.zoom}`);
-      const optimalSpacing = calculateGridSpacing(this.units, this.zoom, this.pixelRatio);
+      
+      // Pass unitToPixelSize from FabricJS if available
+      const optimalSpacing = calculateGridSpacing(
+        this.units, 
+        this.zoom, 
+        this.pixelRatio, 
+        this.unitToPixelSize
+      );
+      
       console.log(`[Grid] Optimal spacing calculated: ${optimalSpacing}`);
       if (optimalSpacing > 0) {
         this.distance = optimalSpacing;
@@ -165,6 +173,23 @@ class Grid extends Base {
   updateViewport(center) {
     const shape = [this.width, this.height];
     Object.assign(this.center, center);
+    
+    // Store unitToPixelSize if provided by FabricJS
+    if (center.unitToPixelSize !== undefined) {
+      this.unitToPixelSize = center.unitToPixelSize;
+      console.log(`[Grid] Received unitToPixelSize: ${this.unitToPixelSize} (pixels per unit at current zoom)`); 
+      
+      // Critical test for unit conversion - this will verify our scaling fix
+      if (this.units === 'imperial') {
+        // Test conversion of 100 points
+        const testPoints = 100;
+        const testInches = testPoints / 72; // Standard conversion: 72 points = 1 inch
+        console.log(`[Grid-TESTCONV] ${testPoints} points = ${testInches.toFixed(2)} inches`);
+        console.log(`[Grid-TESTCONV] For reference: 100 pixels should be about 1.39 inches, not 8'4"`);
+        console.log(`[Grid-TESTCONV] Current unitToPixelSize: ${this.unitToPixelSize} pixels per ${this.units} unit`);
+      }
+    }
+    
     // recalc state
     this.state.x = this.calcCoordinate(this.axisX, shape, this);
     this.state.y = this.calcCoordinate(this.axisY, shape, this);
@@ -444,15 +469,25 @@ class Grid extends Base {
           label *= -1;
         }
         
-        // Debug the label before formatting to see if metric labels are being passed correctly
-        console.log(`[Grid-CRITICAL] PRE-FORMAT LABEL: value=${label}, type=${typeof label}, units=${this.units}`);
+        // Convert value from points to the current unit system
+        // This is critical for displaying the correct measurements on the grid
+        let displayValue = label;
+        
+        // The grid values are inherently in points - convert them to the current unit system
+        if (this.units === 'imperial') {
+          // Convert from points to inches (72 points = 1 inch)
+          displayValue = label / POINTS_PER_INCH;
+        } else if (this.units === 'metric') {
+          // Convert from points to mm (2.835 points = 1 mm)
+          displayValue = label / (POINTS_PER_INCH / 25.4);
+        }
         
         // Format the label based on current units
-        const formattedLabel = formatValueByUnits(label, this.units);
+        const formattedLabel = formatValueByUnits(displayValue, this.units);
         
-        // Debug first few labels only to avoid console spam
-        if (i < 5) {
-          console.log(`[Grid] Label formatting: ${label} → ${formattedLabel} (units: ${this.units})`);
+        // Only show the first label for debugging, if needed
+        if (i === 0) {
+          console.log(`[Grid] Label example: ${label} points → ${displayValue.toFixed(2)} ${this.units} → ${formattedLabel}`);
         }
         
         ctx.fillText(formattedLabel, textLeft, textTop);

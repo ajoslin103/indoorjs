@@ -16,6 +16,7 @@
 export const POINTS_PER_INCH = 72; // Standard DTP points per inch
 export const POINTS_PER_CM = 28.35; // Points per centimeter (72/2.54)
 export const POINTS_PER_MM = 2.835; // Points per millimeter (POINTS_PER_CM/10)
+export const MM_PER_INCH = 25.4; // Millimeters per inch (standard conversion)
 
 // Natural grid increments for each unit system
 export const NATURAL_INCREMENTS = {
@@ -45,19 +46,19 @@ export const MIN_VISIBLE_PIXELS = 5;
  */
 export function getUnitToPixelRatio(units, pixelRatio) {
   // This function should convert from units to screen pixels
-  // For equal grid density at the same zoom level, we need to maintain
-  // the relationship between physical dimensions
+  // The key is to maintain consistent physical dimensions across unit systems
   switch(units) {
     case 'imperial':
-      // 1 inch = 72 points, so at 72dpi, 1 inch = 72 pixels
-      return POINTS_PER_INCH / pixelRatio;
+      // For imperial units, 1 inch should match 72 points (standard DTP resolution)
+      return 1 / pixelRatio; // Scale is intrinsically correct because FabricJS uses points
     case 'metric':
-      // 1 mm = 2.835 points = 2.835 pixels at 72dpi
-      // Changing from cm to mm for finer metric control
-      return POINTS_PER_MM / pixelRatio;
+      // For metric units, we need to match 1mm to the right number of points
+      // Since FabricJS works in points, we need to convert mm to points
+      // 1 inch = 72 points = 25.4 mm, so 1 mm = 72/25.4 = 2.835 points
+      return 1 / pixelRatio; // We'll handle the unit conversion when transforming coordinates
     case 'points':
     default:
-      // 1 point = 1 pixel at 72dpi
+      // For points, 1 point = 1 unit in FabricJS
       return 1 / pixelRatio;
   }
 }
@@ -101,46 +102,62 @@ export function calculateMinZoomForDisplay(units, pixelRatio = 1, desiredPixels 
  * @param {string} units - The current unit system
  * @param {number} zoom - The current zoom level
  * @param {number} pixelRatio - The device pixel ratio
+ * @param {number} [unitToPixelSize] - Pixels per unit at current zoom (from FabricJS)
  * @return {number} The optimal grid spacing in current units
  */
-export function calculateGridSpacing(units, zoom, pixelRatio) {
-  const idealUnitSpacing = IDEAL_GRID_LINE_SPACING / (zoom * getUnitToPixelRatio(units, pixelRatio));
+export function calculateGridSpacing(units, zoom, pixelRatio, unitToPixelSize) {
+  // Minimal debug output for grid spacing calculation
   
-  // DEBUG: Compare equivalent spacing in different units
+  // If unitToPixelSize is provided by FabricJS, use that directly
+  // Otherwise calculate using zoom and unit ratio
+  let idealUnitSpacing;
+  let pixelsPerUnit;
+  
+  if (unitToPixelSize && unitToPixelSize > 0) {
+    // unitToPixelSize represents how many pixels a single unit takes up at current zoom
+    pixelsPerUnit = unitToPixelSize;
+    idealUnitSpacing = IDEAL_GRID_LINE_SPACING / unitToPixelSize;
+  } else {
+    // Fallback to traditional calculation
+    const unitRatio = getUnitToPixelRatio(units, pixelRatio);
+    pixelsPerUnit = zoom * unitRatio;
+    idealUnitSpacing = IDEAL_GRID_LINE_SPACING / pixelsPerUnit;
+  }
+  
+  // Calculate equivalent spacings (useful for debugging but no logging)
   const debugEquivalentSpacing = {};
-  const testZoom = zoom;
-  debugEquivalentSpacing.points = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('points', pixelRatio));
-  debugEquivalentSpacing.imperial = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('imperial', pixelRatio));
-  debugEquivalentSpacing.metric = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('metric', pixelRatio));
+  if (unitToPixelSize && unitToPixelSize > 0) {
+    // If we have FabricJS pixel size, use that for calculation in all units
+    debugEquivalentSpacing.points = IDEAL_GRID_LINE_SPACING / unitToPixelSize;
+    debugEquivalentSpacing.imperial = IDEAL_GRID_LINE_SPACING / (unitToPixelSize * (POINTS_PER_INCH / POINTS_PER_INCH));
+    debugEquivalentSpacing.metric = IDEAL_GRID_LINE_SPACING / (unitToPixelSize * (POINTS_PER_MM / POINTS_PER_INCH));
+  } else {
+    // Otherwise use the zoom-based calculation for all units
+    const testZoom = zoom;
+    debugEquivalentSpacing.points = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('points', pixelRatio));
+    debugEquivalentSpacing.imperial = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('imperial', pixelRatio));
+    debugEquivalentSpacing.metric = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('metric', pixelRatio));
+  }
   
-  // Convert to standard units for comparison (1 inch equivalent)
+  // Calculate inch equivalents and line density (no logging)
   const inchEquivalents = {
-    points: debugEquivalentSpacing.points / 72,
+    points: debugEquivalentSpacing.points / POINTS_PER_INCH,
     imperial: debugEquivalentSpacing.imperial,
-    metric: debugEquivalentSpacing.metric / 25.4 // mm to inches (25.4 mm = 1 inch)
+    metric: debugEquivalentSpacing.metric / MM_PER_INCH 
   };
   
-  console.log(`[Grid-Units] At zoom ${zoom}, ideal spacing equivalents (in inches):`); 
-  console.log(`  - Points: ${debugEquivalentSpacing.points} points (${inchEquivalents.points} inches)`); 
-  console.log(`  - Imperial: ${debugEquivalentSpacing.imperial} inches`); 
-  console.log(`  - Metric: ${debugEquivalentSpacing.metric} mm (${inchEquivalents.metric} inches)`); 
-
-  // Calculate grid line density per inch
   const linesPerInch = {
-    points: 1 / debugEquivalentSpacing.points * 72,  // Convert to lines per inch
-    imperial: 1 / debugEquivalentSpacing.imperial,   // Already in inches
-    metric: 1 / debugEquivalentSpacing.metric * 25.4 // Convert mm to inches (25.4 mm = 1 inch)
+    points: 1 / debugEquivalentSpacing.points * POINTS_PER_INCH,
+    imperial: 1 / debugEquivalentSpacing.imperial,
+    metric: 1 / debugEquivalentSpacing.metric * MM_PER_INCH
   };
   
-  console.log(`[Grid-Units] Grid line density (lines per inch):`); 
-  console.log(`  - Points: ${linesPerInch.points.toFixed(2)} lines/inch`); 
-  console.log(`  - Imperial: ${linesPerInch.imperial.toFixed(2)} lines/inch`); 
-  console.log(`  - Metric: ${linesPerInch.metric.toFixed(2)} lines/inch`); 
-  
+  // Select the appropriate natural increments for current unit system
   const increments = NATURAL_INCREMENTS[units];
-  let bestIncrement = increments[0];
   
   // Find the largest increment that's smaller than the ideal spacing
+  let bestIncrement = increments[0];
+  
   for (let i = 0; i < increments.length; i++) {
     if (increments[i] <= idealUnitSpacing) {
       bestIncrement = increments[i];
@@ -148,6 +165,9 @@ export function calculateGridSpacing(units, zoom, pixelRatio) {
       break;
     }
   }
+  
+  // Single debug log with essential info
+  console.log(`[Grid-Units] Spacing: ${bestIncrement} ${units} (${(pixelsPerUnit * bestIncrement).toFixed(1)} px @ zoom ${zoom})`);
   
   return bestIncrement;
 }
@@ -173,8 +193,7 @@ export function calculateLabelDensity(units, zoom) {
  * @return {string} The formatted value as a string
  */
 export function formatValueByUnits(value, units) {
-  // Add debugging to see what values are being passed
-  console.log(`[Grid-DEBUG] formatValueByUnits called with: value=${value}, type=${typeof value}, units=${units}`);
+  // No debug for every label - too noisy
   
   // Convert value to a number if it's not already
   const numValue = typeof value !== 'number' ? Number(value) : value;
@@ -185,41 +204,81 @@ export function formatValueByUnits(value, units) {
     return String(value || '0');
   }
   
+  // Handle negative values correctly
+  let absValue = Math.abs(numValue);
+  const negative = numValue < 0;
   let result = '';
   
   switch (units) {
     case 'imperial':
-      if (numValue >= 12) {
-        // Format as feet and inches
-        const feet = Math.floor(numValue / 12);
-        const inches = numValue % 12;
-        result = inches === 0 ? `${feet}'` : `${feet}'${inches}"`;
-      } else if (numValue < 1 && numValue > 0) {
-        // Format as fractions for small values
-        if (Math.abs(numValue - 0.5) < 0.01) result = `1/2"`;
-        else if (Math.abs(numValue - 0.25) < 0.01) result = `1/4"`;
-        else if (Math.abs(numValue - 0.125) < 0.01) result = `1/8"`;
-        else if (Math.abs(numValue - 0.0625) < 0.01) result = `1/16"`;
-        else result = `${numValue.toFixed(3)}"`;
+      // Sanity check: If imperial value is extremely large (over 1000 inches), it's likely
+      // we have a scaling error and the value is actually in points. Apply the standard 72:1 conversion.
+      // This safety check prevents displaying huge foot measurements when a conversion error occurs
+      if (absValue > 1000) {
+        console.warn(`[Grid-Units] Suspicious imperial value: ${absValue} inches - likely scaling error`);
+        console.warn(`[Grid-Units] Converting from points to inches: ${absValue} / 72 = ${absValue/72} inches`);
+        absValue = absValue / 72; // Apply standard conversion: 72 points = 1 inch
       } else {
-        result = `${numValue}"`;
+        console.log(`[Grid-Units] Normal imperial value: ${absValue} inches`);
+      }
+      
+      // When in imperial mode, the values should be in inches
+      if (absValue >= 12) {
+        // Format as feet and inches
+        const feet = Math.floor(absValue / 12);
+        const inches = absValue % 12;
+        
+        if (inches === 0) {
+          result = `${feet}'`;
+        } else if (Math.abs(inches - Math.round(inches)) < 0.01) {
+          // Whole inch values
+          result = `${feet}'${Math.round(inches)}"`;
+        } else {
+          // Fractional inches - round to nearest 1/16
+          const fraction = Math.round(inches * 16) / 16;
+          const wholePart = Math.floor(fraction);
+          const fracPart = fraction - wholePart;
+          
+          if (fracPart === 0) {
+            result = `${feet}'${wholePart}"`;
+          } else {
+            // Convert to fraction
+            const fractionStr = getFractionString(fracPart);
+            result = `${feet}'${wholePart > 0 ? wholePart + ' ' : ''}${fractionStr}"`;
+          }
+        }
+      } else if (absValue < 1) {
+        // Small values as fractions
+        result = getFractionString(absValue) + '"';
+      } else {
+        // Handle values between 1 and 12 inches
+        if (Math.abs(absValue - Math.round(absValue)) < 0.01) {
+          // Whole inch values
+          result = `${Math.round(absValue)}"`;
+        } else {
+          // Fractional inches
+          const wholePart = Math.floor(absValue);
+          const fracPart = absValue - wholePart;
+          const fractionStr = getFractionString(fracPart);
+          result = `${wholePart > 0 ? wholePart + ' ' : ''}${fractionStr}"`;
+        }
       }
       break;
       
     case 'metric':
-      console.log(`[Grid-DEBUG] Formatting metric value: ${numValue}`);
-      if (numValue >= 1000) {
+      // In metric mode, all values are in mm
+      if (absValue >= 1000) {
         // Format as meters (1000mm = 1m)
-        result = `${(numValue / 1000).toFixed(1)}m`;
-      } else if (numValue >= 100) {
+        result = `${(absValue / 1000).toFixed(2)}m`;
+      } else if (absValue >= 100) {
         // Format as cm for larger values (100mm = 10cm)
-        result = `${(numValue / 10).toFixed(0)}cm`;
-      } else if (numValue >= 10) {
+        result = `${(absValue / 10).toFixed(1)}cm`;
+      } else if (absValue >= 10) {
         // Format as mm with no decimal
-        result = `${numValue.toFixed(0)}mm`;
+        result = `${absValue.toFixed(0)}mm`;
       } else {
         // Format as mm with one decimal for small values
-        result = `${numValue.toFixed(numValue < 1 ? 1 : 0)}mm`;
+        result = `${absValue.toFixed(1)}mm`;
       }
       break;
       
@@ -230,8 +289,55 @@ export function formatValueByUnits(value, units) {
       break;
   }
   
-  console.log(`[Grid-DEBUG] formatValueByUnits returning: ${result}`);
+  // Apply negative sign if needed
+  if (negative && result !== '0') {
+    result = `-${result}`;
+  }
+  
   return result;
+}
+
+/**
+ * Convert a decimal value to a fraction string representation
+ * @param {number} value - Decimal value between 0 and 1
+ * @return {string} Fraction representation as string (e.g., "1/2", "3/16")
+ */
+function getFractionString(value) {
+  if (value === 0) return '0';
+  
+  // Common fractions to check against
+  const fractions = [
+    { decimal: 1/16, fraction: '1/16' },
+    { decimal: 1/8, fraction: '1/8' },
+    { decimal: 3/16, fraction: '3/16' },
+    { decimal: 1/4, fraction: '1/4' },
+    { decimal: 5/16, fraction: '5/16' },
+    { decimal: 3/8, fraction: '3/8' },
+    { decimal: 7/16, fraction: '7/16' },
+    { decimal: 1/2, fraction: '1/2' },
+    { decimal: 9/16, fraction: '9/16' },
+    { decimal: 5/8, fraction: '5/8' },
+    { decimal: 11/16, fraction: '11/16' },
+    { decimal: 3/4, fraction: '3/4' },
+    { decimal: 13/16, fraction: '13/16' },
+    { decimal: 7/8, fraction: '7/8' },
+    { decimal: 15/16, fraction: '15/16' },
+    { decimal: 1, fraction: '1' }
+  ];
+  
+  // Find the closest match
+  let closestFraction = '0';
+  let smallestDiff = 1;
+  
+  for (const fraction of fractions) {
+    const diff = Math.abs(value - fraction.decimal);
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      closestFraction = fraction.fraction;
+    }
+  }
+  
+  return closestFraction;
 }
 
 /**
@@ -242,35 +348,48 @@ export function formatValueByUnits(value, units) {
  * @return {number} The converted distance
  */
 export function convertDistance(distance, fromUnits, toUnits) {
+  // Critical debugging for unit conversion issue
+  console.log(`[Grid-Units] Converting ${distance} from ${fromUnits} to ${toUnits}`);
+  
   if (fromUnits === toUnits) {
     return distance;
   }
   
+  // First convert to points as an intermediate step
+  let pointValue;
+  
+  // Convert from source unit to points
   if (fromUnits === 'points') {
-    if (toUnits === 'imperial') {
-      // Convert point measurements to inches
-      return distance / POINTS_PER_INCH;
-    } else if (toUnits === 'metric') {
-      // Convert point measurements to centimeters
-      return distance / POINTS_PER_CM;
-    }
+    pointValue = distance;
   } else if (fromUnits === 'imperial') {
-    if (toUnits === 'points') {
-      // Convert inch measurements to points
-      return distance * POINTS_PER_INCH;
-    } else if (toUnits === 'metric') {
-      // Convert inch measurements to cm (1 inch = 2.54 cm)
-      return distance * 2.54;
-    }
+    // Convert inch measurements to points
+    pointValue = distance * POINTS_PER_INCH;
   } else if (fromUnits === 'metric') {
-    if (toUnits === 'points') {
-      // Convert cm measurements to points
-      return distance * POINTS_PER_CM;
-    } else if (toUnits === 'imperial') {
-      // Convert cm measurements to inches (1 cm = 0.3937 inches)
-      return distance / 2.54;
-    }
+    // For metric, we're working in mm (not cm)
+    // Convert mm measurements to points
+    pointValue = distance * POINTS_PER_MM;
+  } else {
+    // Unrecognized unit, return original value
+    return distance;
   }
   
-  return distance;
+  // Convert from points to target unit
+  let result;
+  
+  if (toUnits === 'points') {
+    result = pointValue;
+  } else if (toUnits === 'imperial') {
+    // Convert points to inches
+    result = pointValue / POINTS_PER_INCH;
+    console.log(`[Grid-Units] Point to inch: ${pointValue} points = ${result} inches (÷ ${POINTS_PER_INCH})`);
+  } else if (toUnits === 'metric') {
+    // Convert points to mm
+    result = pointValue / POINTS_PER_MM;
+    console.log(`[Grid-Units] Point to mm: ${pointValue} points = ${result} mm (÷ ${POINTS_PER_MM})`);
+  } else {
+    // Fallback
+    result = distance;
+  }
+  
+  return result;
 }
