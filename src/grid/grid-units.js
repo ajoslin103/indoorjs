@@ -21,7 +21,7 @@ export const MM_PER_INCH = 25.4; // Millimeters per inch (standard conversion)
 // Natural grid increments for each unit system
 export const NATURAL_INCREMENTS = {
   'points': [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000],
-  'imperial': [1/16, 1/8, 1/4, 1/2, 1, 2, 6, 12, 36, 120], // inches, feet, yards
+  'imperial': [1/16, 1/8, 1/4, 1/2, 1, 2, 3, 4, 6, 12, 24, 36, 48, 72, 120, 240, 360], // inches, feet, yards
   'metric': [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] // mm scale
 };
 
@@ -98,76 +98,89 @@ export function calculateMinZoomForDisplay(units, pixelRatio = 1, desiredPixels 
 }
 
 /**
- * Calculate optimal grid spacing based on units and zoom level
- * @param {string} units - The current unit system
- * @param {number} zoom - The current zoom level
- * @param {number} pixelRatio - The device pixel ratio
- * @param {number} [unitToPixelSize] - Pixels per unit at current zoom (from FabricJS)
- * @return {number} The optimal grid spacing in current units
+ * Unit-specific scale function that finds the appropriate natural increment
+ * based on the unit system and minimum step size
+ * 
+ * @param {number} minStep - The minimum step size needed
+ * @param {string} units - The current unit system ('points', 'imperial', or 'metric')
+ * @return {number} The appropriate natural increment
  */
+export function scaleByUnits(minStep, units) {
+  // Get the natural increments for the current unit system
+  const naturalSteps = NATURAL_INCREMENTS[units];
+  if (!naturalSteps) {
+    console.warn(`[Grid-Units] Unknown units '${units}', falling back to points`);
+    return scaleByUnits(minStep, 'points');
+  }
+
+  // For imperial, we need special handling of the fractional values
+  if (units === 'imperial') {
+    // Find the closest natural increment that's >= minStep
+    let bestStep = naturalSteps[0]; // Default to smallest increment
+    
+    for (let i = 0; i < naturalSteps.length; i++) {
+      if (naturalSteps[i] >= minStep) {
+        bestStep = naturalSteps[i];
+        break;
+      }
+    }
+    
+    // If minStep is larger than all our predefined steps, we need to scale up
+    if (bestStep < minStep) {
+      const scaleFactor = Math.ceil(minStep / naturalSteps[naturalSteps.length-1]);
+      bestStep = naturalSteps[naturalSteps.length-1] * scaleFactor;
+    }
+    
+    return bestStep;
+  } 
+  // For metric and points, use a more decimal-friendly approach
+  else {
+    // Find the power of 10 that's appropriate for this step
+    const power = Math.floor(Math.log10(minStep));
+    const order = Math.pow(10, power);
+    
+    // Standard decimal-friendly steps: 1, 2, 5, 10, 20, 50, ...
+    const baseSteps = [1, 2, 5];
+    
+    // Scale the steps by the order of magnitude
+    let scaledSteps = baseSteps.map(v => v * order);
+    if (order * 10 < minStep) {
+      scaledSteps = scaledSteps.concat(baseSteps.map(v => v * order * 10));
+    }
+    
+    // Find the smallest step that's >= minStep
+    for (let i = 0; i < scaledSteps.length; i++) {
+      if (scaledSteps[i] >= minStep) {
+        return scaledSteps[i];
+      }
+    }
+    
+    // If we get here, the minStep is very large
+    return scaledSteps[scaledSteps.length - 1] * Math.ceil(minStep / scaledSteps[scaledSteps.length - 1]);
+  }
+}
+
 export function calculateGridSpacing(units, zoom, pixelRatio, unitToPixelSize) {
-  // Minimal debug output for grid spacing calculation
-  
-  // If unitToPixelSize is provided by FabricJS, use that directly
-  // Otherwise calculate using zoom and unit ratio
-  let idealUnitSpacing;
+  // Determine how many pixels a unit takes at current zoom
   let pixelsPerUnit;
   
   if (unitToPixelSize && unitToPixelSize > 0) {
     // unitToPixelSize represents how many pixels a single unit takes up at current zoom
     pixelsPerUnit = unitToPixelSize;
-    idealUnitSpacing = IDEAL_GRID_LINE_SPACING / unitToPixelSize;
   } else {
     // Fallback to traditional calculation
     const unitRatio = getUnitToPixelRatio(units, pixelRatio);
     pixelsPerUnit = zoom * unitRatio;
-    idealUnitSpacing = IDEAL_GRID_LINE_SPACING / pixelsPerUnit;
   }
+
+  // Calculate the ideal unit spacing based on pixel size
+  const idealUnitSpacing = IDEAL_GRID_LINE_SPACING / pixelsPerUnit;
   
-  // Calculate equivalent spacings (useful for debugging but no logging)
-  const debugEquivalentSpacing = {};
-  if (unitToPixelSize && unitToPixelSize > 0) {
-    // If we have FabricJS pixel size, use that for calculation in all units
-    debugEquivalentSpacing.points = IDEAL_GRID_LINE_SPACING / unitToPixelSize;
-    debugEquivalentSpacing.imperial = IDEAL_GRID_LINE_SPACING / (unitToPixelSize * (POINTS_PER_INCH / POINTS_PER_INCH));
-    debugEquivalentSpacing.metric = IDEAL_GRID_LINE_SPACING / (unitToPixelSize * (POINTS_PER_MM / POINTS_PER_INCH));
-  } else {
-    // Otherwise use the zoom-based calculation for all units
-    const testZoom = zoom;
-    debugEquivalentSpacing.points = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('points', pixelRatio));
-    debugEquivalentSpacing.imperial = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('imperial', pixelRatio));
-    debugEquivalentSpacing.metric = IDEAL_GRID_LINE_SPACING / (testZoom * getUnitToPixelRatio('metric', pixelRatio));
-  }
+  // Use our unit-specific scale function to get the appropriate natural increment
+  const bestIncrement = scaleByUnits(idealUnitSpacing, units);
   
-  // Calculate inch equivalents and line density (no logging)
-  const inchEquivalents = {
-    points: debugEquivalentSpacing.points / POINTS_PER_INCH,
-    imperial: debugEquivalentSpacing.imperial,
-    metric: debugEquivalentSpacing.metric / MM_PER_INCH 
-  };
-  
-  const linesPerInch = {
-    points: 1 / debugEquivalentSpacing.points * POINTS_PER_INCH,
-    imperial: 1 / debugEquivalentSpacing.imperial,
-    metric: 1 / debugEquivalentSpacing.metric * MM_PER_INCH
-  };
-  
-  // Select the appropriate natural increments for current unit system
-  const increments = NATURAL_INCREMENTS[units];
-  
-  // Find the largest increment that's smaller than the ideal spacing
-  let bestIncrement = increments[0];
-  
-  for (let i = 0; i < increments.length; i++) {
-    if (increments[i] <= idealUnitSpacing) {
-      bestIncrement = increments[i];
-    } else {
-      break;
-    }
-  }
-  
-  // Single debug log with essential info
-  console.log(`[Grid-Units] Spacing: ${bestIncrement} ${units} (${(pixelsPerUnit * bestIncrement).toFixed(1)} px @ zoom ${zoom})`);
+  // Log the chosen increment
+  console.log(`[Grid-Units] Natural increment: ${bestIncrement} ${units} (${(pixelsPerUnit * bestIncrement).toFixed(1)} px @ zoom ${zoom})`);
   
   return bestIncrement;
 }
