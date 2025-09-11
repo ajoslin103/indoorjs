@@ -32,6 +32,13 @@ export const MIN_NATURAL_INCREMENTS = {
   'metric': 1 // 1mm (was previously 5mm)
 };
 
+// Maximum natural increment for each unit system
+export const MAX_NATURAL_INCREMENTS = {
+  'points': 10000,
+  'imperial': 360, // 360 yards
+  'metric': 1000 // 1000 meters
+};
+
 // Ideal spacing between grid lines in pixels
 export const IDEAL_GRID_LINE_SPACING = 50;
 

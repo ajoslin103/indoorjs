@@ -13,6 +13,7 @@ import {
   calculateTickPoints
 } from './grid-calcs.js';
 import {
+  MAX_NATURAL_INCREMENTS,
   MIN_NATURAL_INCREMENTS,
   POINTS_PER_INCH,
   POINTS_PER_CM,
@@ -304,6 +305,7 @@ class Grid extends Base {
   draw() {
     // Reset the minimum increment tracking flag at the start of each render cycle
     this.minimumIncrementDisplayed = false;
+    this.maximumIncrementDisplayed = false;
     
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x, this.context);
@@ -446,6 +448,14 @@ class Grid extends Base {
   isMinimumIncrementVisible() {
     return this.minimumIncrementDisplayed === true;
   }
+  
+  /**
+   * Check if maximum increments are visible at the current zoom level
+   * @return {boolean} True if maximum increments are visible
+   */
+  isMaximumIncrementVisible() {
+    return this.maximumIncrementDisplayed === true;
+  }
 
   drawLabels(state, ctx) {
     if (state.labels) {
@@ -504,15 +514,25 @@ class Grid extends Base {
         
         ctx.fillText(formattedLabel, textLeft, textTop);
 
-        // Check if this label represents the minimum natural increment for the current unit system
-        const minIncrement = MIN_NATURAL_INCREMENTS[this.units];
         // Use a small epsilon value for floating-point comparison
         const epsilon = 0.00001;
+
+        // Check if this label represents the minimum natural increment for the current unit system
+        const minIncrement = MIN_NATURAL_INCREMENTS[this.units];
         const isMinimumIncrement = Math.abs(Math.abs(displayValue) - minIncrement) < epsilon;
         
         if (isMinimumIncrement) {
           // Track that we've displayed the minimum increment
           this.minimumIncrementDisplayed = true;
+        }
+
+        // Check if this label represents the maximum natural increment for the current unit system
+        const maxIncrement = MAX_NATURAL_INCREMENTS[this.units];
+        const isMaximumIncrement = Math.abs(Math.abs(displayValue) - maxIncrement) < epsilon;
+        
+        if (isMaximumIncrement) {
+          // Track that we've displayed the maximum increment
+          this.maximumIncrementDisplayed = true;
         }
       }
     }

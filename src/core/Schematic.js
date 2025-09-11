@@ -684,6 +684,20 @@ export class Schematic extends Base {
         this.emit('zoom:minimum:reached', { units: this.mapInstance.grid.getUnits() });
         return; // Exit early without zooming in
       }
+
+      // Check if we're trying to zoom out when maximum increment is displayed
+      const isZoomingOut = direction < 0;
+      const isMaximumIncrementVisible = this.mapInstance.grid && 
+        typeof this.mapInstance.grid.isMaximumIncrementVisible === 'function' && 
+        this.mapInstance.grid.isMaximumIncrementVisible();
+      
+      // Block zoom-out events when maximum increment is already displayed
+      if (isZoomingOut && isMaximumIncrementVisible) {
+        console.log('[Schematic] Blocking zoom-out as maximum increment is already displayed');
+        // Emit an event to notify UI components that maximum increment has been reached
+        this.emit('zoom:maximum:reached', { units: this.mapInstance.grid.getUnits() });
+        return; // Exit early without zooming out
+      }
       
       // Calculate the new zoom level based on wheel direction
       const currentZoom = this.mapInstance.zoom;
