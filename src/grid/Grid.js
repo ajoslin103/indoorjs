@@ -513,10 +513,6 @@ class Grid extends Base {
         if (isMinimumIncrement) {
           // Track that we've displayed the minimum increment
           this.minimumIncrementDisplayed = true;
-          
-          // Log detailed information about the minimum increment
-          console.log(`[Grid] Minimum natural increment displayed: ${minIncrement} ${this.units}`);
-          console.log(`[Grid] Current zoom: ${this.zoom}, Label density: ${labelDensity}`);
         }
       }
     }
