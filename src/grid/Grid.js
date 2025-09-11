@@ -419,6 +419,10 @@ class Grid extends Base {
     this.updateConfiguration();
     this.render();
     
+    // Emit a custom event that will trigger the parent Map to update completely
+    const event = new CustomEvent('grid-units-changed', { detail: { units: units } });
+    document.dispatchEvent(event);
+    
     return this;
   }
 

@@ -60,6 +60,48 @@ export class Map extends Base {
 
     // Enable snapping of object move/resize to integer values
     this._registerSnapping();
+    
+    // Listen for grid unit changes and force a complete re-render
+    document.addEventListener('grid-units-changed', (e) => {
+      console.log(`[Map] Grid units changed event detected: ${e.detail?.units}`);
+      
+      // Store current viewport center and transformation
+      const vpt = this.fabricCanvas.viewportTransform;
+      const centerPoint = {
+        x: this.fabricCanvas.width / 2,
+        y: this.fabricCanvas.height / 2
+      };
+      
+      // Force an immediate update
+      this.update();
+      
+      // Force a complete canvas re-render after a short delay
+      setTimeout(() => {
+        // Ensure we're still centered at the same point
+        if (vpt) {
+          // Calculate world coordinates of center
+          const centerX = (centerPoint.x - vpt[4]) / vpt[0];
+          const centerY = (centerPoint.y - vpt[5]) / vpt[3];
+          
+          // Explicitly recenter the viewport
+          this.fabricCanvas.setViewportTransform(vpt);
+          
+          console.log('[Map] Re-centering viewport after unit change');
+        }
+        
+        // Brute force approach to ensure all objects are visible
+        this.fabricCanvas.getObjects().forEach(obj => {
+          if (obj.visible) {
+            obj.dirty = true;
+            obj.setCoords();
+          }
+        });
+        
+        // Force multiple render passes to ensure everything is visible
+        this.fabricCanvas.requestRenderAll();
+        setTimeout(() => this.fabricCanvas.renderAll(), 50);
+      }, 100);
+    });
 
   }
 
@@ -247,6 +289,9 @@ export class Map extends Base {
       
       // Render the grid with the updated position
       this.grid.render();
+      
+      // Force Fabric canvas to re-render to ensure objects are displayed after unit changes
+      this.fabricCanvas.requestRenderAll();
     }
 
     const now = Date.now();
