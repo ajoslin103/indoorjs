@@ -18,9 +18,6 @@ export class Map extends Base {
     Object.assign(this, this._options);
 
     this.center = new Point(this.center);
-    
-    // Initialize the window.schematicMinimumIncrementReached flag if not already set
-    window.schematicMinimumIncrementReached = window.schematicMinimumIncrementReached || false;
 
     this.container = container || document.body;
 
@@ -106,8 +103,6 @@ export class Map extends Base {
       }, 100);
     });
     
-    // We now use window.schematicMinimumIncrementReached directly from the Grid component
-
   }
 
   addGrid() {
@@ -140,12 +135,7 @@ export class Map extends Base {
   setZoom(zoom) {
     const { width, height } = this.fabricCanvas;
     
-    // Check if we're trying to zoom in when at minimum increment
-    if (window.schematicMinimumIncrementReached && zoom > this.zoom) {
-      return; // Abort the zoom operation entirely
-    }
-    
-    // Apply normal zoom constraints
+    // Apply zoom constraints
     this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
     this.dx = 0;
     this.dy = 0;
