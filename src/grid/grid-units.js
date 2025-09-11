@@ -179,9 +179,6 @@ export function calculateGridSpacing(units, zoom, pixelRatio, unitToPixelSize) {
   // Use our unit-specific scale function to get the appropriate natural increment
   const bestIncrement = scaleByUnits(idealUnitSpacing, units);
   
-  // Log the chosen increment
-  console.log(`[Grid-Units] Natural increment: ${bestIncrement} ${units} (${(pixelsPerUnit * bestIncrement).toFixed(1)} px @ zoom ${zoom})`);
-  
   return bestIncrement;
 }
 
