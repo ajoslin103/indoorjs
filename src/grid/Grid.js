@@ -177,7 +177,7 @@ class Grid extends Base {
     // Store unitToPixelSize if provided by FabricJS
     if (center.unitToPixelSize !== undefined) {
       this.unitToPixelSize = center.unitToPixelSize;
-      console.log(`[Grid] Received unitToPixelSize: ${this.unitToPixelSize} (pixels per unit at current zoom)`); 
+      // console.log(`[Grid] Received unitToPixelSize: ${this.unitToPixelSize} (pixels per unit at current zoom)`); 
       
       // Critical test for unit conversion - this will verify our scaling fix
       if (this.units === 'imperial') {
@@ -448,9 +448,9 @@ class Grid extends Base {
       const isOpp = state.coordinate.orientation === 'y' && !state.opposite.disabled;
       
       // Calculate label density based on zoom level
-      console.log(`[Grid] Calculating label density for units: ${this.units}, zoom: ${this.zoom}`);
+      // console.log(`[Grid] Calculating label density for units: ${this.units}, zoom: ${this.zoom}`);
       const labelDensity = calculateLabelDensity(this.units, this.zoom);
-      console.log(`[Grid] Label density calculated: ${labelDensity} (will show 1 label per ${labelDensity} grid lines)`);
+      // console.log(`[Grid] Label density calculated: ${labelDensity} (will show 1 label per ${labelDensity} grid lines)`);
       
       for (let i = 0; i < state.labels.length; i += 1) {
         let label = state.labels[i];
@@ -488,11 +488,6 @@ class Grid extends Base {
         
         // Format the label based on current units
         const formattedLabel = formatValueByUnits(displayValue, this.units);
-        
-        // Only show the first label for debugging, if needed
-        if (i === 0) {
-          console.log(`[Grid] Label example: ${label} points → ${displayValue.toFixed(2)} ${this.units} → ${formattedLabel}`);
-        }
         
         ctx.fillText(formattedLabel, textLeft, textTop);
       }

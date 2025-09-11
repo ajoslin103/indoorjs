@@ -228,9 +228,7 @@ export function formatValueByUnits(value, units) {
         console.warn(`[Grid-Units] Suspicious imperial value: ${absValue} inches - likely scaling error`);
         console.warn(`[Grid-Units] Converting from points to inches: ${absValue} / 72 = ${absValue/72} inches`);
         absValue = absValue / 72; // Apply standard conversion: 72 points = 1 inch
-      } else {
-        console.log(`[Grid-Units] Normal imperial value: ${absValue} inches`);
-      }
+      } 
       
       // When in imperial mode, the values should be in inches
       if (absValue >= 12) {
