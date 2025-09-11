@@ -13,6 +13,7 @@ import {
   calculateTickPoints
 } from './grid-calcs.js';
 import {
+  MIN_NATURAL_INCREMENTS,
   POINTS_PER_INCH,
   POINTS_PER_CM,
   calculateMaxZoom,
@@ -301,9 +302,13 @@ class Grid extends Base {
    * @return {Grid} This instance for chaining
    */
   draw() {
+    // Reset the minimum increment tracking flag at the start of each render cycle
+    this.minimumIncrementDisplayed = false;
+    
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawLines(this.state.x, this.context);
     this.drawLines(this.state.y, this.context);
+    
     return this;
   }
 
@@ -433,6 +438,14 @@ class Grid extends Base {
   getUnits() {
     return this.units;
   }
+  
+  /**
+   * Check if minimum increments are visible at the current zoom level
+   * @return {boolean} True if minimum increments are visible
+   */
+  isMinimumIncrementVisible() {
+    return this.minimumIncrementDisplayed === true;
+  }
 
   drawLabels(state, ctx) {
     if (state.labels) {
@@ -490,6 +503,21 @@ class Grid extends Base {
         const formattedLabel = formatValueByUnits(displayValue, this.units);
         
         ctx.fillText(formattedLabel, textLeft, textTop);
+
+        // Check if this label represents the minimum natural increment for the current unit system
+        const minIncrement = MIN_NATURAL_INCREMENTS[this.units];
+        // Use a small epsilon value for floating-point comparison
+        const epsilon = 0.00001;
+        const isMinimumIncrement = Math.abs(Math.abs(displayValue) - minIncrement) < epsilon;
+        
+        if (isMinimumIncrement) {
+          // Track that we've displayed the minimum increment
+          this.minimumIncrementDisplayed = true;
+          
+          // Log detailed information about the minimum increment
+          console.log(`[Grid] Minimum natural increment displayed: ${minIncrement} ${this.units}`);
+          console.log(`[Grid] Current zoom: ${this.zoom}, Label density: ${labelDensity}`);
+        }
       }
     }
   }
