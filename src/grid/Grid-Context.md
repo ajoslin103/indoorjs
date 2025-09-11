@@ -13,13 +13,13 @@ Using 10 pixels (instead of the current 5) and assuming a standard pixelRatio of
 ### Points Units
 - Minimum increment: 1 point
 - unitToPixelRatio: 1 / 1 = 1
-- Required zoom: 10 / (1 * 1) = **10.0**
+- Required zoom: 10 / (1 * 1) = **10.0** wrong, more like: 
 - At this zoom level, 1 point = 10 pixels
 
 ### Imperial Units
 - Minimum increment: 1/16 inch = 0.0625 inches
 - unitToPixelRatio: 72 / 1 = 72
-- Required zoom: 10 / (0.0625 * 72) = 10 / 4.5 = **2.22**
+- Required zoom: 10 / (0.0625 * 72) = 10 / 4.5 = **2.22** wrong, more like: 2500
 - At this zoom level, 1/16 inch = 10 pixels
 
 ### Metric Units

@@ -60,6 +60,48 @@ export class Map extends Base {
 
     // Enable snapping of object move/resize to integer values
     this._registerSnapping();
+    
+    // Listen for grid unit changes and force a complete re-render
+    document.addEventListener('grid-units-changed', (e) => {
+      console.log(`[Map] Grid units changed event detected: ${e.detail?.units}`);
+      
+      // Store current viewport center and transformation
+      const vpt = this.fabricCanvas.viewportTransform;
+      const centerPoint = {
+        x: this.fabricCanvas.width / 2,
+        y: this.fabricCanvas.height / 2
+      };
+      
+      // Force an immediate update
+      this.update();
+      
+      // Force a complete canvas re-render after a short delay
+      setTimeout(() => {
+        // Ensure we're still centered at the same point
+        if (vpt) {
+          // Calculate world coordinates of center
+          const centerX = (centerPoint.x - vpt[4]) / vpt[0];
+          const centerY = (centerPoint.y - vpt[5]) / vpt[3];
+          
+          // Explicitly recenter the viewport
+          this.fabricCanvas.setViewportTransform(vpt);
+          
+          console.log('[Map] Re-centering viewport after unit change');
+        }
+        
+        // Brute force approach to ensure all objects are visible
+        this.fabricCanvas.getObjects().forEach(obj => {
+          if (obj.visible) {
+            obj.dirty = true;
+            obj.setCoords();
+          }
+        });
+        
+        // Force multiple render passes to ensure everything is visible
+        this.fabricCanvas.requestRenderAll();
+        setTimeout(() => this.fabricCanvas.renderAll(), 50);
+      }, 100);
+    });
 
   }
 
@@ -152,30 +194,89 @@ export class Map extends Base {
   update() {
     const canvas = this.fabricCanvas;
     
+    // Minimal debug info for the update cycle
+    console.log(`[Map] Update with zoom: ${this.zoom}`);
+    
     // Always clamp zoom to bounds, even if set directly elsewhere
     const z = clamp(this.zoom, this.minZoom, this.maxZoom);
-    if (z !== this.zoom) this.zoom = z;
+    if (z !== this.zoom) {
+      this.zoom = z;
+    }
 
     // First apply the zoom to the center of the canvas
     const centerPoint = new fabric.Point(canvas.width / 2, canvas.height / 2);
+    // Apply zoom
     canvas.zoomToPoint(centerPoint, this.zoom);
     
     // Then update the grid based on the new viewport transform
     if (this.grid) {
       // Get current viewport transform to calculate world coordinates
       const vpt = canvas.viewportTransform;
+      console.log(`[Map] Grid update with units: ${this.grid.units || 'unknown'}`);
       
       if (vpt) {
         // Calculate the viewport center in world coordinates
         const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
         const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
         const gridCenterY = -centerY;
+        
+        // Calculate coordinates
+        
+        // Calculate unit to pixel size directly from the FabricJS viewport transform
+        // vpt[0] is the x-scale factor which tells us how many pixels 1 unit takes up
+        const unitToPixelSize = vpt[0];
+        
+        // Log the actual pixel size for debugging
+        console.log(`[Map] FabricJS unitToPixelSize: ${unitToPixelSize} pixels per unit at zoom ${this.zoom}`);
+        
+        // Create test points to verify scaling
+        const originPoint = new fabric.Point(0, 0);
+        const unitPoint = new fabric.Point(1, 0);
+        const pixelOrigin = fabric.util.transformPoint(originPoint, vpt);
+        const pixelUnit = fabric.util.transformPoint(unitPoint, vpt);
+        const measuredPixels = Math.sqrt(
+          Math.pow(pixelUnit.x - pixelOrigin.x, 2) + 
+          Math.pow(pixelUnit.y - pixelOrigin.y, 2)
+        );
+        console.log(`[Map] Verified: 1 unit = ${measuredPixels.toFixed(2)} pixels at current zoom`);
+        
+        // Calculate grid units for scaling - this is critical for proper conversion
+        // FabricJS uses points as its base unit, so we need to calculate pixels per unit
+        // based on the current grid unit system
+        const currentUnits = this.grid.units || 'points';
+        let unitScaleFactor;
+        
+        // The key insight: FabricJS uses points as its base unit (1/72 of an inch)
+        // So we need to scale appropriately when converting to different unit systems
+        if (currentUnits === 'points') {
+          unitScaleFactor = 1; // No conversion needed - leave as points
+        } else if (currentUnits === 'imperial') {
+          // When in imperial mode, we want to display inches
+          // So we need to convert from points to inches (divide by 72)
+          unitScaleFactor = 1/72; // 72 points = 1 inch
+        } else if (currentUnits === 'metric') {
+          // When in metric mode, we want to display mm
+          // So we need to convert from points to mm (divide by 2.835)
+          unitScaleFactor = 1/2.835; // 2.835 points = 1 mm (72/25.4)
+        }
 
-        // Update the grid with the calculated world coordinates
+        // Calculate the properly scaled pixel size based on unit system
+        const scaledPixelSize = measuredPixels / unitScaleFactor;
+        
+        // Detailed logging to verify unit scaling is working correctly
+        console.log(`[Map] ===== UNIT CONVERSION INFO =====`);
+        console.log(`[Map] Base metrics: 1 FabricJS unit = ${measuredPixels.toFixed(4)} pixels at zoom ${this.zoom}`);
+        console.log(`[Map] Unit system: ${currentUnits}, scale factor: ${unitScaleFactor}`);
+        console.log(`[Map] Final: 1 ${currentUnits} = ${scaledPixelSize.toFixed(4)} pixels`);
+        console.log(`[Map] Expected ratios: 1 inch = 72 points, 1 mm = 2.835 points`);
+        console.log(`[Map] ===== END UNIT CONVERSION INFO =====`);
+        
+        // Update the grid with the calculated values
         this.grid.updateViewport({
           x: centerX,
           y: gridCenterY,
-          zoom: this.zoom
+          zoom: this.zoom,
+          unitToPixelSize: scaledPixelSize // Use the unit-adjusted value
         });
       } else {
         // Fallback if no viewport transform is available
@@ -188,6 +289,9 @@ export class Map extends Base {
       
       // Render the grid with the updated position
       this.grid.render();
+      
+      // Force Fabric canvas to re-render to ensure objects are displayed after unit changes
+      this.fabricCanvas.requestRenderAll();
     }
 
     const now = Date.now();
