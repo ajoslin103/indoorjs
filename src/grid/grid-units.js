@@ -14,6 +14,7 @@
 
 // Constants
 export const POINTS_PER_INCH = 72; // Standard DTP points per inch
+export const ONE_SIXTEENTH_INCH = 1 / 16;
 export const POINTS_PER_CM = 28.35; // Points per centimeter (72/2.54)
 export const POINTS_PER_MM = 2.835; // Points per millimeter (POINTS_PER_CM/10)
 export const MM_PER_INCH = 25.4; // Millimeters per inch (standard conversion)
@@ -28,16 +29,50 @@ export const NATURAL_INCREMENTS = {
 // Minimum natural increment for each unit system
 export const MIN_NATURAL_INCREMENTS = {
   'points': 1,
-  'imperial': 1/16, // 1/16 inch
+  'imperial': ONE_SIXTEENTH_INCH, // 1/16 0.0625
   'metric': 1 // 1mm (was previously 5mm)
 };
 
 // Maximum natural increment for each unit system
 export const MAX_NATURAL_INCREMENTS = {
   'points': 10000,
-  'imperial': 360, // 360 yards
-  'metric': 1000 // 1000 meters
+  'imperial': 10000 / POINTS_PER_INCH,
+  'metric': 10000 / POINTS_PER_MM
 };
+
+// this function takes numbers and returns true 
+// if the number <= minimum increment for the unit system
+export function isDisplayAtMinimum(displayValue, units) {
+  if (!+displayValue) return false;
+  switch (units) {
+    case 'points':
+      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.points;
+    case 'imperial':
+      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.imperial + 0.05; // do this one by the minimum in Points
+    case 'metric':
+      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.metric + 0.5; // do this one by the minimum in Points
+    default:
+      return false;
+  }
+}
+
+// this function takes numbers and returns true 
+// if the number >= maximum increment for the unit system
+export function isDisplayAtMaximum(displayValue, units) {
+  switch (units) {
+    case 'points':
+      console.log('isDisplayAtMaximum', displayValue, units );
+      return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.points;
+    case 'imperial':
+      console.log('isDisplayAtMaximum', displayValue, units );
+      return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.imperial; // do this one by the minimum in Points
+    case 'metric':
+      console.log('isDisplayAtMaximum', displayValue, units );
+      return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.metric; // do this one by the minimum in Points
+    default:
+      return false;
+  }
+}
 
 // Ideal spacing between grid lines in pixels
 export const IDEAL_GRID_LINE_SPACING = 50;

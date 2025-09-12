@@ -20,6 +20,8 @@ import {
   calculateMaxZoom,
   calculateGridSpacing,
   calculateLabelDensity,
+  isDisplayAtMinimum,
+  isDisplayAtMaximum,
   formatValueByUnits,
   convertDistance
 } from './grid-units.js';
@@ -514,23 +516,14 @@ class Grid extends Base {
         
         ctx.fillText(formattedLabel, textLeft, textTop);
 
-        // Use a small epsilon value for floating-point comparison
-        const epsilon = 0.00001;
-
         // Check if this label represents the minimum natural increment for the current unit system
-        const minIncrement = MIN_NATURAL_INCREMENTS[this.units];
-        const isMinimumIncrement = Math.abs(Math.abs(displayValue) - minIncrement) < epsilon;
-        
-        if (isMinimumIncrement) {
+        if (isDisplayAtMinimum(displayValue, this.units)) {
           // Track that we've displayed the minimum increment
           this.minimumIncrementDisplayed = true;
         }
 
         // Check if this label represents the maximum natural increment for the current unit system
-        const maxIncrement = MAX_NATURAL_INCREMENTS[this.units];
-        const isMaximumIncrement = Math.abs(Math.abs(displayValue) - maxIncrement) < epsilon;
-        
-        if (isMaximumIncrement) {
+        if (isDisplayAtMaximum(displayValue, this.units)) {
           // Track that we've displayed the maximum increment
           this.maximumIncrementDisplayed = true;
         }
