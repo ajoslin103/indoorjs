@@ -1,8 +1,8 @@
-# Schematic
+# Schematic Map
 
 A [fabric.js](https://fabricjs.com/) library, for working with fabric objects above a coordinate plane.
 
-`schematic` is based on the excellent original work of [IndoorJS](https://github.com/mudin/indoorjs) by [Mudin](https://github.com/mudin).
+`schematic-map` is based on the excellent original work of [IndoorJS](https://github.com/mudin/indoorjs) by [Mudin](https://github.com/mudin).
 
 
 ## Architecture
@@ -55,9 +55,9 @@ The Fabric.js canvas does what it does — see their docs for details. The Fabri
 - TypeScript type definitions included
 
 ```bash
-npm install @ajoslin23/schematic fabric
+npm install schematic-map fabric
 # or
-yarn add @ajoslin23/schematic fabric
+yarn add schematic-map fabric
 ```
 
 ## Quick start
@@ -68,7 +68,7 @@ The package exports both the `Schematic` class (recommended) and the lower-level
 
 ```javascript
 // JavaScript
-import { Schematic } from '@ajoslin23/schematic';
+import { Schematic } from 'schematic-map';
 
 const container = document.getElementById('canvas-container');
 const schematic = new Schematic(container, {
@@ -92,7 +92,7 @@ fabricCanvas.add(circle);
 ### TypeScript Example
 
 ```typescript
-import { Schematic } from '@ajoslin23/schematic';
+import { Schematic } from 'schematic-map';
 import { Circle } from 'fabric';
 
 const container = document.getElementById('canvas-container');
@@ -122,7 +122,7 @@ schematic.fabric.add(circle);
 ### Using the lower-level Map
 
 ```javascript
-import { Map } from '@ajoslin23/schematic';
+import { Map } from 'schematic-map';
 
 const container = document.getElementById('canvas-container');
 const map = new Map(container, { setShowGrid: true });

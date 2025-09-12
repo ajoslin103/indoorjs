@@ -1,5 +1,5 @@
 {
-  "name": "@23/schematic",
+  "name": "schematic-map",
   "version": "0.1.0",
   "description": "A fabric.js library for working with fabric objects above a coordinate plane",
   "license": "MIT",

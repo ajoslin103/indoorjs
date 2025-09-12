@@ -1,11 +1,11 @@
 {
-  "name": "@ajoslin23/schematic",
-  "version": "0.1.0",
+  "name": "schematic-map",
+  "version": "0.2.0",
   "description": "The IndoorJs Grid as a FabricJS library, facilitates working above coordinate planes",
   "type": "module",
-  "main": "dist/schematic.cjs.js",
-  "module": "dist/schematic.esm.js",
-  "browser": "dist/schematic.umd.js",
+  "main": "dist/schematic-map.cjs.js",
+  "module": "dist/schematic-map.esm.js",
+  "browser": "dist/schematic-map.umd.js",
   "types": "dist/types/index.d.ts",
   "files": [
     "dist"
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ajoslin103/schematic.git"
+    "url": "git+https://github.com/ajoslin103/schematic-maps.git"
   },
   "keywords": [
     "fabric",
