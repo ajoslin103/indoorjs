@@ -15,9 +15,8 @@
 // Constants
 export const POINTS_PER_INCH = 72; // Standard DTP points per inch
 export const ONE_SIXTEENTH_INCH = 1 / 16;
-export const POINTS_PER_CM = 28.35; // Points per centimeter (72/2.54)
-export const POINTS_PER_MM = 2.835; // Points per millimeter (POINTS_PER_CM/10)
-export const MM_PER_INCH = 25.4; // Millimeters per inch (standard conversion)
+export const MM_PER_INCH = 25.4;
+export const POINTS_PER_MM = POINTS_PER_INCH / MM_PER_INCH; // Points per millimeter (POINTS_PER_CM/10)
 
 // Natural grid increments for each unit system
 export const NATURAL_INCREMENTS = {
@@ -48,9 +47,9 @@ export function isDisplayAtMinimum(displayValue, units) {
     case 'points':
       return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.points;
     case 'imperial':
-      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.imperial + 0.05; // do this one by the minimum in Points
+      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.imperial + 0.05;
     case 'metric':
-      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.metric + 0.5; // do this one by the minimum in Points
+      return Math.abs(displayValue) <= MIN_NATURAL_INCREMENTS.metric;
     default:
       return false;
   }
@@ -61,13 +60,10 @@ export function isDisplayAtMinimum(displayValue, units) {
 export function isDisplayAtMaximum(displayValue, units) {
   switch (units) {
     case 'points':
-      console.log('isDisplayAtMaximum', displayValue, units );
       return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.points;
     case 'imperial':
-      console.log('isDisplayAtMaximum', displayValue, units );
       return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.imperial; // do this one by the minimum in Points
     case 'metric':
-      console.log('isDisplayAtMaximum', displayValue, units );
       return Math.abs(displayValue) >= MAX_NATURAL_INCREMENTS.metric; // do this one by the minimum in Points
     default:
       return false;

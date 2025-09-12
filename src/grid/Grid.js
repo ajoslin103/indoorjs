@@ -16,7 +16,7 @@ import {
   MAX_NATURAL_INCREMENTS,
   MIN_NATURAL_INCREMENTS,
   POINTS_PER_INCH,
-  POINTS_PER_CM,
+  POINTS_PER_MM,
   calculateMaxZoom,
   calculateGridSpacing,
   calculateLabelDensity,
@@ -55,10 +55,6 @@ class Grid extends Base {
   // Axis objects for x and y dimensions
   axisX = null;
   axisY = null;
-  
-  // Unit conversion constants
-  POINTS_PER_INCH = POINTS_PER_INCH; // Standard DTP points per inch
-  POINTS_PER_CM = POINTS_PER_CM; // Points per centimeter (72/2.54)
 
   // Grid configuration
   type = 'linear';
@@ -508,7 +504,7 @@ class Grid extends Base {
           displayValue = label / POINTS_PER_INCH;
         } else if (this.units === 'metric') {
           // Convert from points to mm (2.835 points = 1 mm)
-          displayValue = label / (POINTS_PER_INCH / 25.4);
+          displayValue = label / POINTS_PER_MM;
         }
         
         // Format the label based on current units
